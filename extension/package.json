@@ -6,9 +6,7 @@
     "watch": "tsc -p tsconfig.json --watch"
   },
   "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
+    "@types/bun": "latest",
     "typescript": "^5"
   }
 }

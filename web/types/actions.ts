@@ -1,4 +1,4 @@
-export type ActionResponse = FillFormAction | SendEmailAction | NoAction;
+export type ActionResponse = FillFormAction | SendEmailAction;
 
 export type FillFormAction = {
   type: "fill_form";
@@ -10,9 +10,4 @@ export type SendEmailAction = {
   to: string;
   subject: string;
   body: string;
-};
-
-export type NoAction = {
-  type: "none";
-  reason: string;
 };

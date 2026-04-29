@@ -38,7 +38,7 @@ async function analyzeCurrentPage(button: HTMLButtonElement): Promise<void> {
     const text = extractPageText();
     const action = await requestAction(text);
     executeAction(action);
-    setButtonState(button, action.type === "none" ? "No Action" : "Done", false);
+    setButtonState(button, "Done", false);
   } catch (error) {
     console.error("AI Browser Agent failed", error);
     setButtonState(button, "Error", false);

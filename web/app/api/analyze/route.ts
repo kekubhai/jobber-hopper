@@ -72,10 +72,10 @@ async function analyzeWithOpenAI(text: string, apiKey: string): Promise<ActionRe
             "Return only valid JSON matching exactly one of these shapes:",
             "{\"type\":\"fill_form\",\"fields\":{\"name\":\"\",\"email\":\"\"}}",
             "{\"type\":\"send_email\",\"to\":\"\",\"subject\":\"\",\"body\":\"\"}",
-            "{\"type\":\"none\",\"reason\":\"\"}",
             "Use fill_form for job application forms.",
             "Use send_email for explicit email requests.",
-            "For fill_form, include only fields that are visible or strongly implied by the page."
+            "For fill_form, include only fields that are visible or strongly implied by the page.",
+            "If neither applies, return a fill_form action with an empty fields object."
           ].join(" ")
         },
         {
@@ -119,10 +119,6 @@ function parseActionResponse(content: string): ActionResponse {
       subject: parsed.subject,
       body: parsed.body
     };
-  }
-
-  if (parsed.type === "none" && typeof parsed.reason === "string") {
-    return { type: "none", reason: parsed.reason };
   }
 
   throw new Error("OpenAI returned an invalid action shape");
