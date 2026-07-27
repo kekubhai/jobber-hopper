@@ -6,11 +6,12 @@
     <title>AI Browser Agent</title>
     <style>
       body {
-        width: 260px;
+        width: 380px;
         margin: 0;
         padding: 14px;
         color: #111827;
         font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: #f9fafb;
       }
 
       h1 {
@@ -25,6 +26,28 @@
         line-height: 1.4;
       }
 
+      .meta {
+        margin-bottom: 12px;
+        color: #6b7280;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .status {
+        margin-bottom: 12px;
+        color: #1f2937;
+        font-size: 12px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
       button {
         width: 100%;
         padding: 9px 10px;
@@ -35,12 +58,70 @@
         cursor: pointer;
         font-weight: 600;
       }
+
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .fields {
+        display: grid;
+        gap: 8px;
+        max-height: 360px;
+        overflow: auto;
+      }
+
+      .field-card {
+        padding: 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+      }
+
+      .field-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+
+      .field-meta,
+      .confidence,
+      .empty {
+        color: #6b7280;
+        font-size: 12px;
+      }
+
+      input {
+        width: 100%;
+        margin-top: 8px;
+        padding: 8px 9px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-sizing: border-box;
+        font: inherit;
+      }
     </style>
   </head>
   <body>
-    <h1>AI Browser Agent</h1>
-    <p>Use the floating button on a webpage to analyze job forms or email requests.</p>
-    <button id="open-dashboard" type="button">Open Dashboard</button>
+    <h1>Autofill This Page</h1>
+    <p>Review detected fields, edit any values, then fill the page. The extension never auto-submits.</p>
+    <div id="meta" class="meta">Waiting for active tab...</div>
+    <div id="status" class="status">Inspecting page...</div>
+    <div class="actions">
+      <button id="review-fields" class="secondary" type="button">Refresh Review</button>
+      <button id="fill-page" type="button" disabled>Fill Reviewed Fields</button>
+    </div>
+    <div id="fields" class="fields"></div>
+    <p style="margin-top:12px">Need to edit the source profile first?</p>
+    <button id="open-dashboard" class="secondary" type="button">Open Dashboard</button>
+    <script src="extension-settings.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

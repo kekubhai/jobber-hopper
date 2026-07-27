@@ -1,7 +1,8 @@
 "use strict";
-const API_BASE_URL = "http://localhost:3000";
 const BUTTON_ID = "ai-browser-agent-assist";
+const AUTOFILL_BUTTON_ID = "jobber-hopper-autofill";
 const MAX_TEXT_LENGTH = 3000;
+const CONTENT_LOG_PREFIX = "[Jobber Hopper]";
 function injectAssistButton() {
     if (document.getElementById(BUTTON_ID) || !document.body)
         return;
@@ -9,10 +10,30 @@ function injectAssistButton() {
     button.id = BUTTON_ID;
     button.type = "button";
     button.textContent = "AI Assist";
-    button.style.cssText = [
+    button.style.cssText = floatingButtonStyle("bottom:20px");
+    button.addEventListener("click", () => {
+        void analyzeCurrentPage(button);
+    });
+    document.body.appendChild(button);
+}
+function injectAutofillButton() {
+    if (document.getElementById(AUTOFILL_BUTTON_ID) || !document.body)
+        return;
+    const button = document.createElement("button");
+    button.id = AUTOFILL_BUTTON_ID;
+    button.type = "button";
+    button.textContent = "Fill profile";
+    button.style.cssText = floatingButtonStyle("bottom:64px");
+    button.addEventListener("click", () => {
+        void runRuleBasedAutofill(button);
+    });
+    document.body.appendChild(button);
+}
+function floatingButtonStyle(bottomOffset) {
+    return [
         "position:fixed",
         "right:20px",
-        "bottom:20px",
+        bottomOffset,
         "z-index:2147483647",
         "padding:10px 14px",
         "border:0",
@@ -23,16 +44,139 @@ function injectAssistButton() {
         "box-shadow:0 8px 24px rgba(0,0,0,0.2)",
         "cursor:pointer"
     ].join(";");
-    button.addEventListener("click", () => {
-        void analyzeCurrentPage(button);
-    });
-    document.body.appendChild(button);
+}
+async function runRuleBasedAutofill(button) {
+    setButtonState(button, "Filling...", true);
+    try {
+        const review = await buildPopupReviewData();
+        if (!review.ready) {
+            console.warn(`${CONTENT_LOG_PREFIX} No ready master profile. Save your profile in the dashboard first.`);
+            setButtonState(button, "No profile", false);
+            return;
+        }
+        const result = applyReviewedAutofill({
+            fields: review.fields
+                .filter((field) => field.value.trim().length > 0)
+                .map((field) => ({ fieldId: field.fieldId, value: field.value }))
+        });
+        setButtonState(button, result.filled > 0 ? `Filled ${result.filled}` : "No matches", false);
+    }
+    catch (error) {
+        console.error(`${CONTENT_LOG_PREFIX} Autofill failed`, error);
+        setButtonState(button, "Error", false);
+    }
+    finally {
+        window.setTimeout(() => setButtonState(button, "Fill profile", false), 2000);
+    }
+}
+async function fetchMasterProfile(settings) {
+    const baseUrl = settings.apiBaseUrl;
+    const profileId = settings.profileId;
+    const url = `${baseUrl}/api/profile?profileId=${encodeURIComponent(profileId)}`;
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) {
+        throw new Error(`Profile API failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.exists || !data.ready) {
+        return null;
+    }
+    return data.profile;
+}
+function estimateConfidence(field) {
+    if (!field.profileFieldPath || !field.value) {
+        return 0;
+    }
+    const haystack = buildMatchHaystack(field.labelGuess, field.fieldId);
+    if (/\bemail\b/.test(haystack) ||
+        /\bfirst name\b/.test(haystack) ||
+        /\blast name\b/.test(haystack) ||
+        /\bphone\b/.test(haystack) ||
+        /\blinkedin\b/.test(haystack)) {
+        return 0.96;
+    }
+    if (/\bfull name\b/.test(haystack) ||
+        /\byour name\b/.test(haystack) ||
+        /\baddress\b/.test(haystack) ||
+        /\bcity\b/.test(haystack) ||
+        /\bcountry\b/.test(haystack)) {
+        return 0.82;
+    }
+    if (field.type === "textarea") {
+        return 0.72;
+    }
+    return 0.68;
+}
+async function buildPopupReviewData() {
+    const settings = await getExtensionSettings();
+    const profile = await fetchMasterProfile(settings);
+    if (!profile) {
+        return {
+            pageTitle: document.title,
+            pageUrl: window.location.href,
+            ready: false,
+            fields: [],
+            error: "No ready master profile. Save your profile in the dashboard first."
+        };
+    }
+    const scanned = scanFormFieldsWithElements();
+    const matches = matchDetectedFields(profile, scanned);
+    const fields = matches.map((match) => ({
+        fieldId: match.fieldId,
+        labelGuess: match.labelGuess,
+        type: match.type,
+        profileFieldPath: match.profileFieldPath,
+        value: match.value ?? "",
+        confidence: estimateConfidence(match)
+    }));
+    console.group(`${CONTENT_LOG_PREFIX} Popup review data`);
+    console.table(fields);
+    console.groupEnd();
+    return {
+        pageTitle: document.title,
+        pageUrl: window.location.href,
+        ready: true,
+        fields
+    };
+}
+function applyReviewedAutofill(request) {
+    const fieldMap = new Map(scanFormFieldsWithElements().map((field) => [field.fieldId, field.element]));
+    let filled = 0;
+    let skipped = 0;
+    for (const field of request.fields) {
+        const element = fieldMap.get(field.fieldId);
+        if (!element || !field.value.trim()) {
+            skipped += 1;
+            continue;
+        }
+        if (setFormControlValue(element, field.value)) {
+            filled += 1;
+        }
+        else {
+            skipped += 1;
+        }
+    }
+    return {
+        filled,
+        skipped,
+        matches: request.fields.map((field) => ({
+            fieldId: field.fieldId,
+            labelGuess: "",
+            type: "",
+            profileFieldPath: null,
+            value: field.value
+        }))
+    };
 }
 async function analyzeCurrentPage(button) {
     setButtonState(button, "Thinking...", true);
     try {
+        if (typeof window.jobberHopperScanFormFields === "function") {
+            window.jobberHopperScanFormFields();
+        }
         const text = extractPageText();
-        const action = await requestAction(text);
+        const settings = await getExtensionSettings();
+        const action = await requestAction(text, settings);
         executeAction(action);
         setButtonState(button, "Done", false);
     }
@@ -66,16 +210,26 @@ function extractPageText() {
     const bodyText = document.body.innerText.replace(/\s+/g, " ").trim();
     return `${formText}\n\n${bodyText}`.slice(0, MAX_TEXT_LENGTH);
 }
-async function requestAction(text) {
-    const response = await fetch(`${API_BASE_URL}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
-    });
-    if (!response.ok) {
-        throw new Error(`Analyze API failed with status ${response.status}`);
+async function requestAction(text, settings) {
+    const baseUrl = settings.apiBaseUrl;
+    const profileId = settings.profileId;
+    const url = `${baseUrl}/api/analyze?profileId=${encodeURIComponent(profileId)}`;
+    console.debug("AI Browser Agent - requestAction URL:", url);
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
+        });
+        if (!response.ok) {
+            throw new Error(`Analyze API failed with status ${response.status}`);
+        }
+        return response.json();
     }
-    return response.json();
+    catch (err) {
+        console.error("AI Browser Agent fetch failed for", url, err);
+        throw err;
+    }
 }
 function executeAction(action) {
     if (action.type === "fill_form") {
@@ -91,10 +245,7 @@ function fillForm(action) {
         const field = findField(fieldName);
         if (!field)
             continue;
-        field.focus();
-        field.value = value;
-        field.dispatchEvent(new Event("input", { bubbles: true }));
-        field.dispatchEvent(new Event("change", { bubbles: true }));
+        setFormControlValue(field, value);
     }
 }
 function findField(fieldName) {
@@ -134,4 +285,40 @@ function setButtonState(button, label, disabled) {
     button.disabled = disabled;
     button.style.opacity = disabled ? "0.75" : "1";
 }
+window.jobberHopperAutofillProfile = async () => {
+    const review = await buildPopupReviewData();
+    if (!review.ready) {
+        return { filled: 0, skipped: 0, matches: [] };
+    }
+    const result = applyReviewedAutofill({
+        fields: review.fields
+            .filter((field) => field.value.trim().length > 0)
+            .map((field) => ({ fieldId: field.fieldId, value: field.value }))
+    });
+    return { filled: result.filled, skipped: result.skipped, matches: review.fields };
+};
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    const candidate = message;
+    if (candidate.type === "jobber-hopper:get-popup-review") {
+        void buildPopupReviewData()
+            .then((data) => sendResponse(data))
+            .catch((error) => {
+            sendResponse({
+                pageTitle: document.title,
+                pageUrl: window.location.href,
+                ready: false,
+                fields: [],
+                error: error instanceof Error ? error.message : "Failed to inspect page"
+            });
+        });
+        return true;
+    }
+    if (candidate.type === "jobber-hopper:apply-popup-review") {
+        const result = applyReviewedAutofill(candidate.payload ?? { fields: [] });
+        sendResponse(result);
+        return;
+    }
+});
 injectAssistButton();
+injectAutofillButton();
+startFormFieldDetection();

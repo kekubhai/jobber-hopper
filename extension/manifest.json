@@ -15,7 +15,15 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": [
+        "extension-settings.js",
+        "platform-greenhouse.js",
+        "platform.js",
+        "field-detection.js",
+        "profile-match.js",
+        "field-fill.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]

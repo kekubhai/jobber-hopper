@@ -1,13 +1,5 @@
-type ActionResponse = FillFormAction | SendEmailAction;
+type ActionResponse = import("@jobber-hopper/shared").ActionResponse;
 
-type FillFormAction = {
-  type: "fill_form";
-  fields: Record<string, string>;
-};
+type FillFormAction = import("@jobber-hopper/shared").FillFormAction;
 
-type SendEmailAction = {
-  type: "send_email";
-  to: string;
-  subject: string;
-  body: string;
-};
+type SendEmailAction = import("@jobber-hopper/shared").SendEmailAction;

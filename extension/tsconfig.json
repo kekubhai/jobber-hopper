@@ -5,7 +5,12 @@
     "module": "None",
     "strict": true,
     "skipLibCheck": true,
-    "noEmitOnError": true
+    "noEmitOnError": true,
+    "baseUrl": ".",
+    "paths": {
+      "@jobber-hopper/shared": ["../shared/index.ts"]
+    }
   },
-  "include": ["*.ts", "*.d.ts"]
+  "include": ["*.ts", "*.d.ts"],
+  "exclude": ["scripts/**"]
 }
