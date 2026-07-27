@@ -53,7 +53,9 @@ function mergeRuleAndLlmMatches(profile, ruleMatches, llmMappings) {
         return {
             ...match,
             profileFieldPath: llm.profileFieldPath,
-            value
+            value,
+            mappingSource: "llm",
+            mappingConfidence: llm.confidence
         };
     });
 }

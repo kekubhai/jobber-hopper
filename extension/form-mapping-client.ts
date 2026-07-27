@@ -51,23 +51,21 @@ async function fetchLlmFormMappings(
   return payload.mappings ?? [];
 }
 
-function mergeRuleAndLlmMatches(
-  profile: MasterProfilePayload,
-  ruleMatches: Array<{
-    fieldId: string;
-    labelGuess: string;
-    type: string;
-    profileFieldPath: string | null;
-    value: string | null;
-  }>,
-  llmMappings: Array<{ fieldId: string; profileFieldPath: string | null; confidence: number }>
-): Array<{
+type EnrichedFormMatch = {
   fieldId: string;
   labelGuess: string;
   type: string;
   profileFieldPath: string | null;
   value: string | null;
-}> {
+  mappingSource: "rule" | "llm";
+  mappingConfidence?: number;
+};
+
+function mergeRuleAndLlmMatches(
+  profile: MasterProfilePayload,
+  ruleMatches: EnrichedFormMatch[],
+  llmMappings: Array<{ fieldId: string; profileFieldPath: string | null; confidence: number }>
+): EnrichedFormMatch[] {
   const llmById = new Map(llmMappings.map((mapping) => [mapping.fieldId, mapping]));
 
   return ruleMatches.map((match) => {
@@ -89,7 +87,9 @@ function mergeRuleAndLlmMatches(
     return {
       ...match,
       profileFieldPath: llm.profileFieldPath,
-      value
+      value,
+      mappingSource: "llm",
+      mappingConfidence: llm.confidence
     };
   });
 }
@@ -97,23 +97,9 @@ function mergeRuleAndLlmMatches(
 async function enrichMatchesWithLlmWhenNeeded(
   profile: MasterProfilePayload,
   scanned: Array<{ fieldId: string; labelGuess: string; type: string }>,
-  ruleMatches: Array<{
-    fieldId: string;
-    labelGuess: string;
-    type: string;
-    profileFieldPath: string | null;
-    value: string | null;
-  }>,
+  ruleMatches: EnrichedFormMatch[],
   settings: ExtensionSettings
-): Promise<
-  Array<{
-    fieldId: string;
-    labelGuess: string;
-    type: string;
-    profileFieldPath: string | null;
-    value: string | null;
-  }>
-> {
+): Promise<EnrichedFormMatch[]> {
   const needsLlm = ruleMatches.some((match) => {
     const confidence = estimateConfidence(match);
     return confidence < LOW_CONFIDENCE_THRESHOLD || !match.profileFieldPath || !match.value;

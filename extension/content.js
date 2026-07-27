@@ -3,6 +3,9 @@ const BUTTON_ID = "ai-browser-agent-assist";
 const AUTOFILL_BUTTON_ID = "jobber-hopper-autofill";
 const MAX_TEXT_LENGTH = 3000;
 const CONTENT_LOG_PREFIX = "[Jobber Hopper]";
+const FUNNEL_SESSION_ID = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `jh-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 function injectAssistButton() {
     if (document.getElementById(BUTTON_ID) || !document.body)
         return;
@@ -56,9 +59,15 @@ async function runRuleBasedAutofill(button) {
         }
         const result = applyReviewedAutofill({
             fields: review.fields
-                .filter((field) => field.value.trim().length > 0)
+                .filter((field) => field.isSafeToFill && field.value.trim().length > 0)
                 .map((field) => ({ fieldId: field.fieldId, value: field.value }))
         });
+        if (result.filled > 0) {
+            void trackApplicationFill();
+            void trackFunnelEvent("autofill_accepted", {
+                fieldsFilled: result.filled
+            });
+        }
         setButtonState(button, result.filled > 0 ? `Filled ${result.filled}` : "No matches", false);
     }
     catch (error) {
@@ -86,6 +95,93 @@ async function fetchMasterProfile(settings) {
     }
     return data.profile;
 }
+function applicationText(selector) {
+    return (document.querySelector(selector)?.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
+}
+function contentMeta(nameOrProperty) {
+    const meta = document.querySelector(`meta[name="${CSS.escape(nameOrProperty)}"], meta[property="${CSS.escape(nameOrProperty)}"]`);
+    return meta?.content.replace(/\s+/g, " ").trim().slice(0, 300) ?? "";
+}
+function getApplicationTrackingMetadata() {
+    const platform = typeof detectJobPlatform === "function" ? detectJobPlatform() : "generic";
+    const path = window.location.pathname.toLowerCase();
+    const likelyApplication = platform !== "generic" || /\/(?:job|jobs|career|careers|apply|application)(?:\/|$)/.test(path);
+    if (!likelyApplication) {
+        return null;
+    }
+    const role = applicationText("[data-automation-id='jobPostingTitle'], [data-automation-id='jobTitle'], .app-title, h1") || contentMeta("og:title") || document.title;
+    const company = applicationText("[data-automation-id='company'], [data-automation-id='companyName'], .company-name") || contentMeta("og:site_name");
+    return {
+        jobUrl: window.location.href,
+        domain: window.location.hostname.toLowerCase(),
+        platform,
+        company,
+        role
+    };
+}
+async function trackApplicationFill() {
+    const metadata = getApplicationTrackingMetadata();
+    if (!metadata) {
+        return;
+    }
+    try {
+        const settings = await getExtensionSettings();
+        const headers = {
+            "Content-Type": "application/json",
+            ...(await getExtensionAuthHeaders())
+        };
+        const url = `${settings.apiBaseUrl}/api/applications?profileId=${encodeURIComponent(settings.profileId)}`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(metadata)
+        });
+        if (!response.ok) {
+            throw new Error(`Application tracker responded ${response.status}`);
+        }
+        console.info(`${CONTENT_LOG_PREFIX} Application tracked`, metadata);
+    }
+    catch (error) {
+        // Tracking must never block or undo a user-approved fill.
+        console.warn(`${CONTENT_LOG_PREFIX} Application tracking skipped`, error);
+    }
+}
+function trackFormDetected(fields) {
+    void trackFunnelEvent("form_detected", {
+        fieldsDetected: fields.length
+    });
+}
+async function trackFunnelEvent(eventName, counts) {
+    const metadata = getApplicationTrackingMetadata();
+    if (!metadata) {
+        return;
+    }
+    try {
+        const settings = await getExtensionSettings();
+        const response = await fetch(`${settings.apiBaseUrl}/api/analytics/events?profileId=${encodeURIComponent(settings.profileId)}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(await getExtensionAuthHeaders())
+            },
+            body: JSON.stringify({
+                sessionId: FUNNEL_SESSION_ID,
+                eventName,
+                pageUrl: metadata.jobUrl,
+                domain: metadata.domain,
+                platform: metadata.platform,
+                ...counts
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`Funnel tracker responded ${response.status}`);
+        }
+    }
+    catch (error) {
+        // Observability must never interrupt a user-facing fill or form review.
+        console.warn(`${CONTENT_LOG_PREFIX} Funnel tracking skipped`, error);
+    }
+}
 function estimateConfidence(field) {
     if (!field.profileFieldPath || !field.value) {
         return 0;
@@ -110,6 +206,24 @@ function estimateConfidence(field) {
     }
     return 0.68;
 }
+function reviewConfidence(match) {
+    if (match.mappingSource === "llm" && typeof match.mappingConfidence === "number") {
+        return match.mappingConfidence;
+    }
+    return estimateConfidence(match);
+}
+function getManualReviewReason(match) {
+    if (!match.profileFieldPath) {
+        return "Couldn't detect a safe profile match — fill manually.";
+    }
+    if (!match.value) {
+        return "No saved value is available for this field — fill manually.";
+    }
+    if (match.confidence < LOW_CONFIDENCE_THRESHOLD) {
+        return "Couldn't detect this field confidently — fill manually.";
+    }
+    return null;
+}
 async function buildPopupReviewData() {
     const settings = await getExtensionSettings();
     const profile = await fetchMasterProfile(settings);
@@ -123,22 +237,34 @@ async function buildPopupReviewData() {
         };
     }
     const scanned = scanFormFieldsWithElements();
-    const ruleMatches = matchDetectedFields(profile, scanned);
+    const ruleMatches = matchDetectedFields(profile, scanned).map((match) => ({
+        ...match,
+        mappingSource: "rule"
+    }));
     const enriched = await enrichMatchesWithLlmWhenNeeded(profile, scanned, ruleMatches, settings);
-    const fields = enriched.map((match) => ({
-        fieldId: match.fieldId,
-        labelGuess: match.labelGuess,
-        type: match.type,
-        profileFieldPath: match.profileFieldPath,
-        value: match.value ?? "",
-        confidence: estimateConfidence({
+    const fields = enriched.map((match) => {
+        const confidence = reviewConfidence(match);
+        const manualReason = getManualReviewReason({
+            profileFieldPath: match.profileFieldPath,
+            value: match.value ?? null,
+            confidence
+        });
+        return {
             fieldId: match.fieldId,
             labelGuess: match.labelGuess,
             type: match.type,
             profileFieldPath: match.profileFieldPath,
-            value: match.value
-        })
-    }));
+            value: match.value ?? "",
+            confidence,
+            isSafeToFill: !manualReason,
+            manualReason
+        };
+    });
+    void trackFunnelEvent("fields_reviewed", {
+        fieldsDetected: fields.length,
+        fieldsMatched: fields.filter((field) => field.profileFieldPath !== null).length,
+        fieldsSafe: fields.filter((field) => field.isSafeToFill).length
+    });
     console.group(`${CONTENT_LOG_PREFIX} Popup review data`);
     console.table(fields);
     console.groupEnd();
@@ -302,7 +428,7 @@ window.jobberHopperAutofillProfile = async () => {
     }
     const result = applyReviewedAutofill({
         fields: review.fields
-            .filter((field) => field.value.trim().length > 0)
+            .filter((field) => field.isSafeToFill && field.value.trim().length > 0)
             .map((field) => ({ fieldId: field.fieldId, value: field.value }))
     });
     return { filled: result.filled, skipped: result.skipped, matches: review.fields };
@@ -325,10 +451,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     if (candidate.type === "jobber-hopper:apply-popup-review") {
         const result = applyReviewedAutofill(candidate.payload ?? { fields: [] });
+        if (result.filled > 0) {
+            void trackApplicationFill();
+            void trackFunnelEvent("autofill_accepted", {
+                fieldsFilled: result.filled
+            });
+        }
         sendResponse(result);
         return;
     }
 });
+document.addEventListener("submit", () => {
+    void trackFunnelEvent("application_submitted", {});
+}, true);
 injectAssistButton();
 injectAutofillButton();
 startFormFieldDetection();

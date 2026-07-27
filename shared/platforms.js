@@ -5,5 +5,11 @@ exports.JOB_PLATFORM_LABELS = {
     generic: "Generic form",
     greenhouse: "Greenhouse",
     workday: "Workday",
-    lever: "Lever"
+    lever: "Lever",
+    icims: "iCIMS",
+    taleo: "Taleo",
+    wellfound: "Wellfound",
+    ashby: "Ashby",
+    smartrecruiters: "SmartRecruiters",
+    jobvite: "Jobvite"
 };

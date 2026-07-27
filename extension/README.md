@@ -98,7 +98,16 @@ DOM ids between steps, and may use **open shadow roots**.
 3. Wait for the next step to render, then **Refresh Review** again and fill
    that visible step. The extension never clicks Next or submits.
 
-Lever is not implemented yet.
+### What to build after Workday
+
+The extension records observed application platforms/domains after a job form
+is detected. Use the dashboard's **Product analytics → Platforms to
+prioritize** list to decide the next adapter from real usage, rather than
+guessing.
+
+The tracked candidate platforms are Lever, iCIMS, Taleo, Wellfound, Ashby,
+SmartRecruiters, and Jobvite. They are **observed only**, not implemented
+adapters yet.
 
 ## Phase 6 — LLM field mapping (labels only)
 

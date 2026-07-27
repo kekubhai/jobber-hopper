@@ -315,6 +315,11 @@ function scanAndLogFormFields(reason = "manual"): DetectedFormField[] {
   const platform = typeof detectJobPlatform === "function" ? detectJobPlatform() : "generic";
   const fields = scanFormFields();
   logDetectedFormFields(fields, `${reason} [${platform}]`);
+
+  if (reason === "initial" && typeof trackFormDetected === "function") {
+    trackFormDetected(fields);
+  }
+
   return fields;
 }
 

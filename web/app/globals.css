@@ -33,9 +33,11 @@ body {
   min-height: 100vh;
 }
 
-main {
-  min-height: 100vh;
-  padding: 28px;
+@layer base {
+  main {
+    min-height: 100vh;
+    padding: 28px;
+  }
 }
 
 .page-shell {
@@ -79,35 +81,37 @@ main {
   text-transform: uppercase;
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-display), Georgia, serif;
-  letter-spacing: -0.02em;
-}
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), Georgia, serif;
+    letter-spacing: -0.02em;
+  }
 
-h1 {
-  margin: 0;
-  font-size: clamp(2.6rem, 6vw, 5rem);
-  line-height: 0.95;
-  max-width: 12ch;
-}
+  h1 {
+    margin: 0;
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    line-height: 0.95;
+    max-width: 12ch;
+  }
 
-h2 {
-  margin: 0;
-  font-size: 1.35rem;
-  line-height: 1.1;
-}
+  h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    line-height: 1.1;
+  }
 
-h3 {
-  margin: 0 0 8px;
-  font-size: 1.05rem;
-}
+  h3 {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+  }
 
-p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.65;
+  p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.65;
+  }
 }
 
 .hero-copy p {
@@ -167,6 +171,118 @@ p {
 
 .auth-form .field input {
   min-height: 44px;
+}
+
+.resume-import-card {
+  border: 2px solid #0f766e;
+  background: linear-gradient(135deg, #f0fdfa, #ffffff);
+}
+
+.resume-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.resume-import-actions input[type="file"] {
+  max-width: 100%;
+}
+
+.application-list {
+  display: grid;
+  gap: 10px;
+}
+
+.application-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.application-card h3,
+.application-card p {
+  margin: 0;
+}
+
+.application-card p,
+.application-card a,
+.application-card label {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.application-card a {
+  display: inline-block;
+  margin-top: 5px;
+}
+
+.application-card label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.application-card select {
+  min-width: 110px;
+}
+
+.funnel-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.funnel-metrics > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f3f4f6;
+}
+
+.funnel-metrics strong {
+  font-size: 1.3rem;
+}
+
+.funnel-metrics span,
+.usage-list {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.analytics-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.analytics-breakdown h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.usage-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usage-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .auth-clerk-actions {
@@ -397,8 +513,14 @@ p {
 }
 
 @media (max-width: 640px) {
-  main {
-    padding: 18px;
+  @layer base {
+    main {
+      padding: 18px;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+    }
   }
 
   .hero-copy,
@@ -407,8 +529,82 @@ p {
     border-radius: 22px;
     padding: 18px;
   }
+}
 
-  h1 {
-    font-size: 2.3rem;
+/* ---------- Jobber Hopper landing page ---------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
+}
+
+.landing-root {
+  font-family: var(--font-jakarta), "Segoe UI", sans-serif;
+  background: #ffffff;
+  color: #0a1633;
+  letter-spacing: normal;
+}
+
+@layer base {
+  .landing-root h1,
+  .landing-root h2,
+  .landing-root h3 {
+    font-family: inherit;
+    margin: 0;
+    max-width: none;
+    font-size: revert;
+    line-height: inherit;
+    letter-spacing: inherit;
+  }
+
+  .landing-root p {
+    margin: 0;
+    color: inherit;
+    line-height: inherit;
+  }
+
+  .landing-root main.landing-main {
+    padding: 0;
+    min-height: 0;
+  }
+}
+
+/* Hero: electric blue fading to lighter blue, with grid texture */
+.hero-blue {
+  background-color: #1468f5;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, #1468f5 0%, #1468f5 55%, #6ba0f9 100%);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+}
+
+/* Faint square grid texture on blue surfaces */
+.grid-tex-blue {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Faint square grid texture on light surfaces */
+.grid-tex-light {
+  background-image:
+    linear-gradient(rgba(20, 104, 245, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 104, 245, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Grid texture for the light-blue analytics panel */
+.grid-tex-lightblue {
+  background-image:
+    linear-gradient(rgba(20, 104, 245, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 104, 245, 0.12) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+/* Hide horizontal scrollbar on the testimonial track (WebKit) */
+.landing-root .snap-x::-webkit-scrollbar {
+  display: none;
 }

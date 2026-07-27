@@ -37,6 +37,8 @@ type PopupReviewField = {
   profileFieldPath: string | null;
   value: string;
   confidence: number;
+  isSafeToFill: boolean;
+  manualReason: string | null;
 };
 
 type PopupReviewResponse = {

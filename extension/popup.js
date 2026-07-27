@@ -14,7 +14,7 @@ pairingButton?.addEventListener("click", () => {
 });
 dashboardButton?.addEventListener("click", async () => {
     const settings = await getExtensionSettings();
-    void chrome.tabs.create({ url: settings.apiBaseUrl });
+    void chrome.tabs.create({ url: `${settings.apiBaseUrl}/dashboard#account` });
 });
 reviewButton?.addEventListener("click", () => {
     void loadReview();
@@ -92,7 +92,7 @@ async function applyFill() {
         return;
     }
     const payload = {
-        fields: Array.from(document.querySelectorAll("[data-field-id]"))
+        fields: Array.from(document.querySelectorAll("[data-field-id][data-safe-to-fill='true']"))
             .map((input) => ({
             fieldId: input.dataset.fieldId ?? "",
             value: input.value
@@ -121,30 +121,39 @@ function renderReview(review) {
         setStatus(review.error ?? "Profile is not ready yet.");
         return;
     }
-    const matchedFields = review.fields.filter((field) => field.profileFieldPath && field.value.trim().length > 0);
+    const safeFields = review.fields.filter((field) => field.isSafeToFill);
+    const manualFields = review.fields.filter((field) => !field.isSafeToFill);
     if (fieldsNode) {
-        fieldsNode.innerHTML = matchedFields.length === 0
-            ? "<p class=\"empty\">No autofill matches found on this page.</p>"
-            : matchedFields.map((field, index) => renderField(field, index)).join("");
+        fieldsNode.innerHTML = review.fields.length === 0
+            ? "<p class=\"empty\">No form fields found on this page.</p>"
+            : review.fields.map((field, index) => renderField(field, index)).join("");
     }
-    setFillEnabled(matchedFields.length > 0);
-    setStatus(`${review.fields.length} detected, ${matchedFields.length} ready to review.`);
+    setFillEnabled(safeFields.length > 0);
+    setStatus(manualFields.length > 0
+        ? `${safeFields.length} safe to fill. ${manualFields.length} need manual entry.`
+        : `${safeFields.length} fields ready to review.`);
 }
 function renderField(field, index) {
     const confidence = `${Math.round(field.confidence * 100)}%`;
-    const path = field.profileFieldPath ?? "No match";
+    const path = field.profileFieldPath ?? "No safe match";
+    const stateClass = field.isSafeToFill ? "field-card-safe" : "field-card-manual";
+    const content = field.isSafeToFill
+        ? `
+      <input
+        data-field-id="${escapeHtml(field.fieldId)}"
+        data-safe-to-fill="true"
+        aria-label="Review value ${index + 1}"
+        value="${escapeHtml(field.value)}"
+      />`
+        : `<p class="manual-warning">${escapeHtml(field.manualReason ?? "Couldn't detect this field confidently — fill manually.")}</p>`;
     return `
-    <article class="field-card">
+    <article class="field-card ${stateClass}">
       <div class="field-top">
         <strong>${escapeHtml(field.labelGuess || field.fieldId)}</strong>
         <span class="confidence">${confidence}</span>
       </div>
       <div class="field-meta">${escapeHtml(field.type)} -> ${escapeHtml(path)}</div>
-      <input
-        data-field-id="${escapeHtml(field.fieldId)}"
-        aria-label="Review value ${index + 1}"
-        value="${escapeHtml(field.value)}"
-      />
+      ${content}
     </article>
   `;
 }

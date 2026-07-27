@@ -1,4 +1,14 @@
-type JobPlatformId = "generic" | "greenhouse" | "workday";
+type JobPlatformId =
+  | "generic"
+  | "greenhouse"
+  | "workday"
+  | "lever"
+  | "icims"
+  | "taleo"
+  | "wellfound"
+  | "ashby"
+  | "smartrecruiters"
+  | "jobvite";
 
 function detectJobPlatform(): JobPlatformId {
   if (typeof isGreenhouseApplicationPage === "function" && isGreenhouseApplicationPage()) {
@@ -8,6 +18,15 @@ function detectJobPlatform(): JobPlatformId {
   if (typeof isWorkdayApplicationPage === "function" && isWorkdayApplicationPage()) {
     return "workday";
   }
+
+  const host = window.location.hostname.toLowerCase();
+  if (host.endsWith("lever.co") || host.includes(".lever.co")) return "lever";
+  if (host.includes("icims.com")) return "icims";
+  if (host.includes("taleo.net") || host.includes("taleo.com")) return "taleo";
+  if (host.includes("wellfound.com") || host.includes("angel.co")) return "wellfound";
+  if (host.includes("ashbyhq.com")) return "ashby";
+  if (host.includes("smartrecruiters.com")) return "smartrecruiters";
+  if (host.includes("jobvite.com")) return "jobvite";
 
   return "generic";
 }

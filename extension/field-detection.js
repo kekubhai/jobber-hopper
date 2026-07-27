@@ -159,7 +159,13 @@ function resolveFieldType(field) {
     const inputType = (field.getAttribute("type") ?? "text").toLowerCase();
     return inputType || "text";
 }
-function buildFieldId(field, index) {
+function buildFieldId(field, index, labelGuess = "") {
+    const platformId = typeof getPlatformStableFieldId === "function"
+        ? getPlatformStableFieldId(field, index, labelGuess)
+        : "";
+    if (platformId) {
+        return platformId;
+    }
     if (field.id) {
         return field.id;
     }
@@ -185,10 +191,13 @@ function isScanCandidate(field) {
     return true;
 }
 function collectFormControls(root) {
+    const platformControls = root === undefined && typeof getPlatformFormControls === "function"
+        ? getPlatformFormControls()
+        : null;
     const scanRoot = root ??
         (typeof getPlatformScanRoot === "function" ? getPlatformScanRoot() : document);
-    const nodes = scanRoot.querySelectorAll("input, textarea, select");
-    return Array.from(nodes).filter((field) => {
+    const controls = platformControls ?? Array.from(scanRoot.querySelectorAll("input, textarea, select"));
+    return controls.filter((field) => {
         if (!isScanCandidate(field)) {
             return false;
         }
@@ -198,21 +207,30 @@ function collectFormControls(root) {
         return true;
     });
 }
-function scanFormFields(root = document) {
+function scanFormFields(root) {
     return scanFormFieldsWithElements(root).map(({ fieldId, labelGuess, type }) => ({
         fieldId,
         labelGuess,
         type
     }));
 }
-function scanFormFieldsWithElements(root = document) {
+function scanFormFieldsWithElements(root) {
     const controls = collectFormControls(root);
-    return controls.map((field, index) => ({
-        fieldId: buildFieldId(field, index),
-        labelGuess: guessLabel(field),
-        type: resolveFieldType(field),
-        element: field
-    }));
+    const fields = controls.map((field, index) => {
+        const labelGuess = guessLabel(field);
+        return {
+            fieldId: buildFieldId(field, index, labelGuess),
+            labelGuess,
+            type: resolveFieldType(field),
+            element: field
+        };
+    });
+    const occurrences = new Map();
+    return fields.map((field) => {
+        const occurrence = (occurrences.get(field.fieldId) ?? 0) + 1;
+        occurrences.set(field.fieldId, occurrence);
+        return occurrence === 1 ? field : { ...field, fieldId: `${field.fieldId}-${occurrence}` };
+    });
 }
 function logDetectedFormFields(fields, reason) {
     console.group(`${LOG_PREFIX} Form field scan (${reason})`);
@@ -228,6 +246,9 @@ function scanAndLogFormFields(reason = "manual") {
     const platform = typeof detectJobPlatform === "function" ? detectJobPlatform() : "generic";
     const fields = scanFormFields();
     logDetectedFormFields(fields, `${reason} [${platform}]`);
+    if (reason === "initial" && typeof trackFormDetected === "function") {
+        trackFormDetected(fields);
+    }
     return fields;
 }
 let scanScheduled = false;

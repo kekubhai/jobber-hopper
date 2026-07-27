@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createEmptyAddressInfo,
   createEmptyCustomQaPair,
@@ -37,6 +37,8 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
   const [profileId, setProfileId] = useState(defaultProfileId);
   const [status, setStatus] = useState("Unsaved profile");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImportingResume, setIsImportingResume] = useState(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void loadProfile(defaultProfileId);
@@ -45,6 +47,39 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
   function updateProfile(nextProfile: MasterProfile) {
     setProfile(nextProfile);
     setStatus("Unsaved changes");
+  }
+
+  async function importResume() {
+    const resume = resumeInputRef.current?.files?.[0];
+    if (!resume) {
+      setStatus("Choose a PDF, DOCX, or TXT resume first.");
+      return;
+    }
+
+    setIsImportingResume(true);
+    setStatus("Extracting resume details for review...");
+
+    try {
+      const formData = new FormData();
+      formData.set("resume", resume);
+      const response = await fetch("/api/profile/import-resume", {
+        method: "POST",
+        headers: { Accept: "application/json", ...authHeaders },
+        body: formData
+      });
+
+      const payload = await readResumeImportResponse(response);
+      if (!response.ok || !payload.profile) {
+        throw new Error(payload.error ?? "Resume import failed");
+      }
+
+      setProfile((current) => mergeImportedResume(current, normalizeMasterProfile(payload.profile!)));
+      setStatus("Resume imported. Review every field below, then click Save profile.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not import this resume.");
+    } finally {
+      setIsImportingResume(false);
+    }
   }
 
   async function saveProfile() {
@@ -99,6 +134,32 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
 
   return (
     <div className="stack">
+      <section className="section-card resume-import-card">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Fast start</p>
+            <h3>Import your resume</h3>
+          </div>
+          <p>
+            Upload once and we&apos;ll extract your profile, education, and work history. Nothing is saved until you review and click Save.
+          </p>
+        </div>
+        <div className="resume-import-actions">
+          <input
+            ref={resumeInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt,application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            disabled={isImportingResume || isLoading}
+          />
+          <button type="button" onClick={() => void importResume()} disabled={isImportingResume || isLoading}>
+            {isImportingResume ? "Extracting..." : "Import resume"}
+          </button>
+        </div>
+        <p className="help-copy">
+          PDF, DOCX, or TXT up to 5 MB. Parsing runs on this server; no resume text is sent to an LLM.
+        </p>
+      </section>
+
       <section className="section-card">
         <div className="section-header">
           <div>
@@ -485,6 +546,45 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
       [section]: current[section].filter((_, entryIndex) => entryIndex !== index)
     }));
     setStatus("Unsaved changes");
+  }
+}
+
+function mergeImportedResume(current: MasterProfile, imported: MasterProfile): MasterProfile {
+  const fillEmpty = <T extends Record<string, string>>(existing: T, extracted: T): T => {
+    const next = { ...existing };
+    for (const key of Object.keys(next) as Array<keyof T>) {
+      if (!next[key].trim() && extracted[key].trim()) {
+        next[key] = extracted[key];
+      }
+    }
+    return next;
+  };
+
+  return {
+    ...current,
+    personal: fillEmpty(current.personal, imported.personal),
+    address: fillEmpty(current.address, imported.address),
+    education: current.education.length > 0 ? current.education : imported.education,
+    workHistory: current.workHistory.length > 0 ? current.workHistory : imported.workHistory
+  };
+}
+
+async function readResumeImportResponse(response: Response): Promise<{ profile?: MasterProfile; error?: string }> {
+  const raw = await response.text();
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.includes("application/json")) {
+    const clerkReason = response.headers.get("x-clerk-auth-reason");
+    const hint = clerkReason
+      ? `Clerk blocked this request (${clerkReason}). Reload the dashboard, sign in again, and retry.`
+      : "The resume endpoint returned HTML instead of JSON. Restart the web dev server, then retry.";
+    return { error: `${hint} (HTTP ${response.status})` };
+  }
+
+  try {
+    return JSON.parse(raw) as { profile?: MasterProfile; error?: string };
+  } catch {
+    return { error: `Resume endpoint returned invalid JSON (HTTP ${response.status}).` };
   }
 }
 

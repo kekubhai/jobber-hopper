@@ -1,9 +1,8 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Manrope, Fraunces } from "next/font/google";
+import { Manrope, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { ClerkRootProvider } from "./clerk-root-provider";
 import { ClerkUserSync } from "./clerk-user-sync";
-import { SiteAuthNav } from "./site-auth-nav";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -14,6 +13,11 @@ const manrope = Manrope({
 const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-display"
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta"
 });
 
 export const metadata: Metadata = {
@@ -28,11 +32,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable}`}>
+      <body className={`${manrope.variable} ${fraunces.variable} ${jakarta.variable}`}>
         <ClerkProvider>
           <ClerkRootProvider>
             <ClerkUserSync />
-            <SiteAuthNav />
             {children}
           </ClerkRootProvider>
         </ClerkProvider>

@@ -38,6 +38,15 @@ Profiles for signed-in users are stored under `profile_id` = your Clerk user id 
 
 **Clerk → Supabase sync:** On sign-in, `POST /api/auth/sync` upserts `clerk_user_profiles` (email, name, avatar) and ensures a `master_profiles` row with `profile_id` = Clerk user id. Empty name/email fields are prefilled from Clerk when possible.
 
+### Resume import
+
+The dashboard supports a review-first PDF, DOCX, or TXT resume import (5 MB
+maximum). The server extracts text and uses deterministic local parsing for
+contact details plus best-effort education and work-history sections. Imported
+values populate only empty profile fields; existing profile data is preserved.
+Nothing is written to Supabase until the user reviews the form and clicks
+**Save profile**.
+
 ## 2. Supabase Schema
 
 In Supabase SQL editor, run [web/supabase/schema.sql](web/supabase/schema.sql).
