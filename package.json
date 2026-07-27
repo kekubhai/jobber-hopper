@@ -1,0 +1,17 @@
+{
+  "name": "jobber-hopper",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.0.0",
+  "workspaces": [
+    "extension",
+    "web",
+    "shared"
+  ],
+  "scripts": {
+    "build:extension": "pnpm --dir extension build",
+    "build:web": "pnpm --dir web build",
+    "dev:web": "pnpm --dir web dev",
+    "watch:extension": "pnpm --dir extension watch"
+  }
+}

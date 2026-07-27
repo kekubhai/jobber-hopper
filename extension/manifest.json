@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "AI Browser Agent",
-  "description": "Detects job forms and email requests, asks the local AI backend for actions, and executes them in the browser.",
+  "name": "Jobber Hopper",
+  "description": "Review and fill job applications from your master profile. Rule-based matching with optional AI field mapping; you approve every fill.",
   "version": "1.0.0",
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["http://localhost:3000/*"],
@@ -21,6 +21,8 @@
         "platform.js",
         "field-detection.js",
         "profile-match.js",
+        "form-mapping.js",
+        "form-mapping-client.js",
         "field-fill.js",
         "content.js"
       ],

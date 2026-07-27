@@ -76,3 +76,21 @@ Detected on `*.greenhouse.io`, `grnh.se`, and embedded `#application_form` / `.a
 3. Popup → **Refresh Review** again → fill that step. Never auto-submit.
 
 Workday and Lever: not implemented yet (placeholders in `shared/platforms.ts`).
+
+## Phase 6 — LLM field mapping (labels only)
+
+When rule-based confidence is below **0.75** (or a field has no match), the extension POSTs **field ids + labels + types** to `POST /api/form-mapping` — no DOM HTML.
+
+- Cache key: `domain` + SHA-256 hash of the canonical field list (`form_field_mapping_cache` in Supabase).
+- First visit to a unique form may call OpenRouter; repeat visits use the cache.
+- Requires a ready master profile (same as autofill).
+
+## Phase 7 — Auth, sync, Chrome Web Store
+
+1. Sign in on the dashboard (Supabase email/password).
+2. Click **Generate extension code**, enter the 6-character code in the extension popup **Link** field.
+3. Extension stores your session and uses `profileId = your user id` for `/api/profile` and form mapping.
+
+Local dev without sign-in still uses `local-dev-user` when no bearer token is set.
+
+See `CHROME_WEB_STORE.md` for packaging and review checklist.

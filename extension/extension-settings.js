@@ -1,10 +1,13 @@
 "use strict";
 const DEFAULT_API_BASE_URL = "http://localhost:3000";
 const DEFAULT_PROFILE_ID = "local-dev-user";
+const SETTINGS_KEYS = ["apiBaseUrl", "profileId", "accessToken", "refreshToken"];
 function defaultExtensionSettings() {
     return {
         apiBaseUrl: DEFAULT_API_BASE_URL,
-        profileId: DEFAULT_PROFILE_ID
+        profileId: DEFAULT_PROFILE_ID,
+        accessToken: "",
+        refreshToken: ""
     };
 }
 function normalizeStoredSettings(stored) {
@@ -15,7 +18,9 @@ function normalizeStoredSettings(stored) {
     const profileId = typeof stored.profileId === "string" && stored.profileId.trim().length > 0
         ? stored.profileId.trim()
         : defaults.profileId;
-    return { apiBaseUrl, profileId };
+    const accessToken = typeof stored.accessToken === "string" ? stored.accessToken : "";
+    const refreshToken = typeof stored.refreshToken === "string" ? stored.refreshToken : "";
+    return { apiBaseUrl, profileId, accessToken, refreshToken };
 }
 async function readExtensionSettingsFromStorage() {
     const local = typeof chrome !== "undefined" && chrome.storage && chrome.storage.local
@@ -24,7 +29,7 @@ async function readExtensionSettingsFromStorage() {
     if (!local) {
         return null;
     }
-    const stored = await local.get(["apiBaseUrl", "profileId"]);
+    const stored = await local.get(SETTINGS_KEYS);
     return normalizeStoredSettings(stored);
 }
 async function readExtensionSettingsViaBackground() {
@@ -53,4 +58,37 @@ async function getExtensionSettings() {
         console.warn("[Jobber Hopper] chrome.storage.local read failed", error);
     }
     return readExtensionSettingsViaBackground();
+}
+async function saveExtensionSessionTokens(payload) {
+    const local = typeof chrome !== "undefined" && chrome.storage && chrome.storage.local
+        ? chrome.storage.local
+        : null;
+    if (!local) {
+        return;
+    }
+    await local.set({
+        profileId: payload.profileId,
+        accessToken: payload.accessToken,
+        refreshToken: payload.refreshToken
+    });
+}
+async function clearExtensionSessionTokens() {
+    const local = typeof chrome !== "undefined" && chrome.storage && chrome.storage.local
+        ? chrome.storage.local
+        : null;
+    if (!local) {
+        return;
+    }
+    await local.set({
+        accessToken: "",
+        refreshToken: "",
+        profileId: DEFAULT_PROFILE_ID
+    });
+}
+async function getExtensionAuthHeaders() {
+    const settings = await getExtensionSettings();
+    if (settings.accessToken.trim().length > 0) {
+        return { Authorization: `Bearer ${settings.accessToken.trim()}` };
+    }
+    return {};
 }

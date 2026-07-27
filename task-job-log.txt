@@ -1,0 +1,7 @@
+Task / Job Log
+Date: 2026-04-29
+
+Current entry:
+- Task: Create a text file to log tasks and jobs before starting any screen-based work.
+- Status: done
+- Notes: Add future task and job entries here before performing them.

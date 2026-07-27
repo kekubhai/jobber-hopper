@@ -4,6 +4,8 @@ const required = [
   "background.js",
   "content.js",
   "extension-settings.js",
+  "form-mapping.js",
+  "form-mapping-client.js",
   "field-detection.js",
   "field-fill.js",
   "platform-greenhouse.js",

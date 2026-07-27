@@ -10,14 +10,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (candidate.type !== "jobber-hopper:get-settings") {
         return;
     }
-    void chrome.storage.local.get(["apiBaseUrl", "profileId"]).then((stored) => {
+    void chrome.storage.local.get(["apiBaseUrl", "profileId", "accessToken", "refreshToken"]).then((stored) => {
         sendResponse({
             apiBaseUrl: typeof stored.apiBaseUrl === "string" && stored.apiBaseUrl.trim().length > 0
                 ? stored.apiBaseUrl
                 : "http://localhost:3000",
             profileId: typeof stored.profileId === "string" && stored.profileId.trim().length > 0
                 ? stored.profileId
-                : "local-dev-user"
+                : "local-dev-user",
+            accessToken: typeof stored.accessToken === "string" ? stored.accessToken : "",
+            refreshToken: typeof stored.refreshToken === "string" ? stored.refreshToken : ""
         });
     });
     return true;

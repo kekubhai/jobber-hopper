@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import type { ActionResponse } from "../../../types/actions";
+import type { ActionResponse } from "@jobber-hopper/shared";
+import { isMasterProfileReady, type MasterProfile } from "@jobber-hopper/shared";
+import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 type AnalyzeRequest = {
   text?: unknown;
 };
 
-type OpenAIChatResponse = {
+type ChatCompletionResponse = {
   choices?: Array<{
     message?: {
       content?: string;
@@ -13,13 +15,15 @@ type OpenAIChatResponse = {
   }>;
 };
 
-const OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions";
+const OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions";
+const defaultProfileId = process.env.DEFAULT_PROFILE_ID ?? "local-dev-user";
+const defaultModel = process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini";
 
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ error: "OPENAI_API_KEY is not configured" }, { status: 500 });
+    return NextResponse.json({ error: "OPENROUTER_API_KEY is not configured" }, { status: 500 });
   }
 
   let body: AnalyzeRequest;
@@ -34,13 +38,67 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Request body must include text" }, { status: 400 });
   }
 
+  const profileId = getProfileIdFromUrl(request.url);
+  const profileReady = await checkProfileReady(profileId);
+
+  if (!profileReady) {
+    return NextResponse.json(
+      {
+        error: "Master profile is missing or incomplete. Save your profile first.",
+        profileId
+      },
+      { status: 412 }
+    );
+  }
+
   try {
-    const action = await analyzeWithOpenAI(body.text.slice(0, 3000), apiKey);
+    const action = await analyzeWithOpenRouter(body.text.slice(0, 3000), apiKey);
     return NextResponse.json(action);
   } catch (error) {
     console.error("Analyze API error", error);
     return NextResponse.json({ error: "Failed to analyze page" }, { status: 502 });
   }
+}
+
+async function checkProfileReady(profileId: string): Promise<boolean> {
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("master_profiles")
+      .select("personal, address, education, work_history, custom_qa_pairs")
+      .eq("profile_id", profileId)
+      .maybeSingle<{
+        personal: MasterProfile["personal"];
+        address: MasterProfile["address"];
+        education: MasterProfile["education"];
+        work_history: MasterProfile["workHistory"];
+        custom_qa_pairs: MasterProfile["customQaPairs"];
+      }>();
+
+    if (error || !data) {
+      return false;
+    }
+
+    return isMasterProfileReady({
+      personal: data.personal,
+      address: data.address,
+      education: data.education,
+      workHistory: data.work_history,
+      customQaPairs: data.custom_qa_pairs
+    });
+  } catch {
+    return false;
+  }
+}
+
+function getProfileIdFromUrl(url: string): string {
+  const parsed = new URL(url);
+  const candidate = parsed.searchParams.get("profileId");
+  if (candidate && candidate.trim().length > 0) {
+    return candidate.trim();
+  }
+
+  return defaultProfileId;
 }
 
 export function OPTIONS() {
@@ -54,15 +112,24 @@ export function OPTIONS() {
   });
 }
 
-async function analyzeWithOpenAI(text: string, apiKey: string): Promise<ActionResponse> {
-  const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+async function analyzeWithOpenRouter(text: string, apiKey: string): Promise<ActionResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`
+  };
+
+  const siteUrl = process.env.OPENROUTER_SITE_URL;
+  const appName = process.env.OPENROUTER_APP_NAME ?? "Jobber Hopper";
+  if (siteUrl) {
+    headers["HTTP-Referer"] = siteUrl;
+  }
+  headers["X-Title"] = appName;
+
+  const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`
-    },
+    headers,
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+      model: defaultModel,
       temperature: 0,
       response_format: { type: "json_object" },
       messages: [
@@ -87,14 +154,15 @@ async function analyzeWithOpenAI(text: string, apiKey: string): Promise<ActionRe
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}`);
+    const detail = await response.text().catch(() => "");
+    throw new Error(`OpenRouter request failed with status ${response.status}${detail ? `: ${detail.slice(0, 500)}` : ""}`);
   }
 
-  const data = await response.json() as OpenAIChatResponse;
+  const data = await response.json() as ChatCompletionResponse;
   const content = data.choices?.[0]?.message?.content;
 
   if (!content) {
-    throw new Error("OpenAI returned no content");
+    throw new Error("OpenRouter returned no content");
   }
 
   return parseActionResponse(content);
@@ -121,7 +189,7 @@ function parseActionResponse(content: string): ActionResponse {
     };
   }
 
-  throw new Error("OpenAI returned an invalid action shape");
+  throw new Error("Model returned an invalid action shape");
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {

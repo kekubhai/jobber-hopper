@@ -18,7 +18,10 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
+      "@jobber-hopper/shared": ["../shared/index.ts"],
+      "@jobber-hopper/shared/*": ["../shared/*"],
       "@/*": ["./*"]
     }
   },
@@ -28,7 +31,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "../shared/*.ts"
   ],
   "exclude": ["node_modules"]
 }

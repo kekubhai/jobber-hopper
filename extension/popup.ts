@@ -4,8 +4,15 @@ const fillButton = document.getElementById("fill-page");
 const statusNode = document.getElementById("status");
 const metaNode = document.getElementById("meta");
 const fieldsNode = document.getElementById("fields");
+const pairingInput = document.getElementById("pairing-code");
+const pairingButton = document.getElementById("pair-extension");
+const pairingStatus = document.getElementById("pairing-status");
 
 let currentReview: PopupReviewResponse | null = null;
+
+pairingButton?.addEventListener("click", () => {
+  void redeemPairingCode();
+});
 
 dashboardButton?.addEventListener("click", async () => {
   const settings = await getExtensionSettings();
@@ -21,6 +28,58 @@ fillButton?.addEventListener("click", () => {
 });
 
 void loadReview();
+
+async function redeemPairingCode(): Promise<void> {
+  if (!(pairingInput instanceof HTMLInputElement)) {
+    return;
+  }
+
+  const code = pairingInput.value.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) {
+    setPairingStatus("Enter the 6-character code from the dashboard.");
+    return;
+  }
+
+  setPairingStatus("Linking...");
+
+  try {
+    const settings = await getExtensionSettings();
+    const response = await fetch(`${settings.apiBaseUrl}/api/extension/pairing/redeem`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(payload.error ?? `Link failed (${response.status})`);
+    }
+
+    const payload = await response.json() as {
+      profileId: string;
+      accessToken: string;
+      refreshToken: string;
+    };
+
+    await saveExtensionSessionTokens({
+      profileId: payload.profileId,
+      accessToken: payload.accessToken,
+      refreshToken: payload.refreshToken
+    });
+
+    pairingInput.value = "";
+    setPairingStatus("Linked. Profile sync uses your account.");
+    void loadReview();
+  } catch (error) {
+    setPairingStatus(error instanceof Error ? error.message : "Could not link extension");
+  }
+}
+
+function setPairingStatus(message: string): void {
+  if (pairingStatus) {
+    pairingStatus.textContent = message;
+  }
+}
 
 async function loadReview(): Promise<void> {
   setStatus("Inspecting active page...");

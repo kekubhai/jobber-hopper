@@ -12,7 +12,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return;
   }
 
-  void chrome.storage.local.get(["apiBaseUrl", "profileId"]).then((stored) => {
+  void chrome.storage.local.get(["apiBaseUrl", "profileId", "accessToken", "refreshToken"]).then((stored) => {
     sendResponse({
       apiBaseUrl:
         typeof stored.apiBaseUrl === "string" && stored.apiBaseUrl.trim().length > 0
@@ -21,7 +21,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       profileId:
         typeof stored.profileId === "string" && stored.profileId.trim().length > 0
           ? stored.profileId
-          : "local-dev-user"
+          : "local-dev-user",
+      accessToken: typeof stored.accessToken === "string" ? stored.accessToken : "",
+      refreshToken: typeof stored.refreshToken === "string" ? stored.refreshToken : ""
     });
   });
 

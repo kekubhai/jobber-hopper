@@ -73,7 +73,10 @@ async function fetchMasterProfile(settings) {
     const baseUrl = settings.apiBaseUrl;
     const profileId = settings.profileId;
     const url = `${baseUrl}/api/profile?profileId=${encodeURIComponent(profileId)}`;
-    const response = await fetch(url, { method: "GET" });
+    const response = await fetch(url, {
+        method: "GET",
+        headers: await getExtensionAuthHeaders()
+    });
     if (!response.ok) {
         throw new Error(`Profile API failed with status ${response.status}`);
     }
@@ -120,14 +123,21 @@ async function buildPopupReviewData() {
         };
     }
     const scanned = scanFormFieldsWithElements();
-    const matches = matchDetectedFields(profile, scanned);
-    const fields = matches.map((match) => ({
+    const ruleMatches = matchDetectedFields(profile, scanned);
+    const enriched = await enrichMatchesWithLlmWhenNeeded(profile, scanned, ruleMatches, settings);
+    const fields = enriched.map((match) => ({
         fieldId: match.fieldId,
         labelGuess: match.labelGuess,
         type: match.type,
         profileFieldPath: match.profileFieldPath,
         value: match.value ?? "",
-        confidence: estimateConfidence(match)
+        confidence: estimateConfidence({
+            fieldId: match.fieldId,
+            labelGuess: match.labelGuess,
+            type: match.type,
+            profileFieldPath: match.profileFieldPath,
+            value: match.value
+        })
     }));
     console.group(`${CONTENT_LOG_PREFIX} Popup review data`);
     console.table(fields);

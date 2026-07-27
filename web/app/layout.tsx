@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
+import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body"
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display"
+});
+
 export const metadata: Metadata = {
-  title: "AI Browser Agent",
-  description: "Local dashboard and API for the AI Browser Agent Chrome extension",
+  title: "Jobber Hopper",
+  description: "Profile source of truth and browser automation workspace"
 };
 
 export default function RootLayout({
@@ -13,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable}`}>{children}</body>
     </html>
   );
 }
