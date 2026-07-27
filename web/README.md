@@ -18,7 +18,25 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 DEFAULT_PROFILE_ID=local-dev-user
+
+# Clerk (sign-in / Google)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 ```
+
+### Clerk + Google sign-in
+
+1. Create an app at [dashboard.clerk.com](https://dashboard.clerk.com).
+2. Copy **Publishable** and **Secret** keys into `web/.env.local`.
+3. Clerk Dashboard → **Configure** → **SSO connections** → enable **Google**.
+4. Restart `pnpm dev:web`, open `http://localhost:3000#account`, click **Sign in** → **Continue with Google**.
+5. **Generate extension code** → paste in the Chrome extension popup.
+
+Profiles for signed-in users are stored under `profile_id` = your Clerk user id (`user_…`). Unsigned dev still uses `local-dev-user`.
+
+**Clerk → Supabase sync:** On sign-in, `POST /api/auth/sync` upserts `clerk_user_profiles` (email, name, avatar) and ensures a `master_profiles` row with `profile_id` = Clerk user id. Empty name/email fields are prefilled from Clerk when possible.
 
 ## 2. Supabase Schema
 

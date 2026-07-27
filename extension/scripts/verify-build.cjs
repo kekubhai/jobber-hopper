@@ -9,6 +9,7 @@ const required = [
   "field-detection.js",
   "field-fill.js",
   "platform-greenhouse.js",
+  "platform-workday.js",
   "platform.js",
   "profile-match.js",
   "popup.js"

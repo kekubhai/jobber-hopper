@@ -75,7 +75,30 @@ Detected on `*.greenhouse.io`, `grnh.se`, and embedded `#application_form` / `.a
 2. Click Greenhouse **Next** for the next section.
 3. Popup → **Refresh Review** again → fill that step. Never auto-submit.
 
-Workday and Lever: not implemented yet (placeholders in `shared/platforms.ts`).
+### Workday (implemented)
+
+Detected on `*.myworkdayjobs.com` / Workday application routes and Workday
+application markup. Workday renders a multi-step wizard, regenerates field
+DOM ids between steps, and may use **open shadow roots**.
+
+- Scans only the visible wizard step; hidden steps are excluded.
+- Traverses open shadow roots and extracts Workday `data-automation-id`,
+  `aria-labelledby`, and form-field labels.
+- Uses label-derived field ids (`workday-text-first-name`, etc.) so popup
+  review and the LLM mapping cache do not depend on Workday's session-specific
+  ids.
+- Does not attempt to access closed shadow roots or cross-origin iframes;
+  browsers deliberately prevent extensions from reading those internals.
+
+**Workflow on Workday applications**
+
+1. Open the active application step → extension popup → **Refresh Review** →
+   review/fill its fields.
+2. Use Workday's **Next** button yourself.
+3. Wait for the next step to render, then **Refresh Review** again and fill
+   that visible step. The extension never clicks Next or submits.
+
+Lever is not implemented yet.
 
 ## Phase 6 — LLM field mapping (labels only)
 

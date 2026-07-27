@@ -13,17 +13,30 @@ import {
   PROFILE_STORAGE_KEY,
   type MasterProfile
 } from "@jobber-hopper/shared";
-import { useProfileAuthHeaders } from "./auth-panel";
+import { isClerkClientConfigured } from "@/lib/clerk-env";
+import { useProfileAuthHeaders } from "./use-profile-auth-headers";
 
 const storageKey = PROFILE_STORAGE_KEY;
 const defaultProfileId = "local-dev-user";
 
 export function ProfileForm() {
+  if (isClerkClientConfigured()) {
+    return <ProfileFormWithClerk />;
+  }
+
+  return <ProfileFormContent authHeaders={{}} />;
+}
+
+function ProfileFormWithClerk() {
+  const authHeaders = useProfileAuthHeaders();
+  return <ProfileFormContent authHeaders={authHeaders} />;
+}
+
+function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, string> }) {
   const [profile, setProfile] = useState<MasterProfile>(() => createEmptyMasterProfile());
   const [profileId, setProfileId] = useState(defaultProfileId);
   const [status, setStatus] = useState("Unsaved profile");
   const [isLoading, setIsLoading] = useState(false);
-  const authHeaders = useProfileAuthHeaders();
 
   useEffect(() => {
     void loadProfile(defaultProfileId);

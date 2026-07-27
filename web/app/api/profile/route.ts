@@ -6,6 +6,7 @@ import {
   type MasterProfile
 } from "@jobber-hopper/shared";
 import { jsonWithCors, optionsCors } from "@/lib/api-cors";
+import { syncClerkUserToSupabase } from "@/lib/clerk-user-sync";
 import { getAuthenticatedUser, getProfileIdFromUrl } from "@/lib/request-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import {
@@ -38,6 +39,14 @@ export function OPTIONS() {
 
 export async function GET(request: Request) {
   const auth = await getAuthenticatedUser(request);
+  if (auth) {
+    try {
+      await syncClerkUserToSupabase(auth.userId);
+    } catch (error) {
+      console.warn("Clerk sync on profile GET skipped", error);
+    }
+  }
+
   const profileId = auth?.userId ?? getProfileIdFromUrl(request.url, defaultProfileId);
 
   try {
@@ -102,6 +111,9 @@ export async function POST(request: Request) {
 
   try {
     const supabase = getSupabaseAdminClient();
+    if (auth) {
+      await syncClerkUserToSupabase(auth.userId);
+    }
     const data = auth
       ? await upsertMasterProfileForUser(supabase, auth.userId, profile)
       : await upsertMasterProfile(supabase, profileId, profile);

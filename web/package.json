@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/backend": "^2.33.6",
+    "@clerk/nextjs": "^6.36.0",
     "@jobber-hopper/shared": "workspace:*",
     "@supabase/supabase-js": "^2.57.4",
     "next": "16.2.4",

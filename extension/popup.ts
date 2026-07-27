@@ -16,7 +16,7 @@ pairingButton?.addEventListener("click", () => {
 
 dashboardButton?.addEventListener("click", async () => {
   const settings = await getExtensionSettings();
-  void chrome.tabs.create({ url: settings.apiBaseUrl });
+  void chrome.tabs.create({ url: `${settings.apiBaseUrl}#account` });
 });
 
 reviewButton?.addEventListener("click", () => {

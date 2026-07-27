@@ -153,6 +153,95 @@ p {
   margin-top: 20px;
 }
 
+.auth-panel {
+  border: 2px solid #111827;
+}
+
+.auth-warning {
+  color: #b45309;
+}
+
+.pairing-code-display {
+  font-size: 1.1rem;
+}
+
+.auth-form .field input {
+  min-height: 44px;
+}
+
+.auth-clerk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.signed-in-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.clerk-primary-btn,
+.auth-clerk-actions button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clerk-secondary-btn {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.clerk-config-banner {
+  margin: 0;
+  padding: 12px 16px;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.site-auth-nav {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.nav-auth-btn {
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.nav-auth-btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
 .section-card {
   padding: 24px;
 }

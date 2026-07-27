@@ -1,5 +1,9 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Manrope, Fraunces } from "next/font/google";
+import { ClerkRootProvider } from "./clerk-root-provider";
+import { ClerkUserSync } from "./clerk-user-sync";
+import { SiteAuthNav } from "./site-auth-nav";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -24,7 +28,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable}`}>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable}`}>
+        <ClerkProvider>
+          <ClerkRootProvider>
+            <ClerkUserSync />
+            <SiteAuthNav />
+            {children}
+          </ClerkRootProvider>
+        </ClerkProvider>
+      </body>
     </html>
   );
 }

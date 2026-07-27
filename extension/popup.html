@@ -140,19 +140,33 @@
         font-size: 12px;
         color: #6b7280;
       }
+
+      .steps {
+        margin: 0 0 12px 18px;
+        padding: 0;
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.5;
+      }
     </style>
   </head>
   <body>
     <h1>Jobber Hopper</h1>
-    <p>Review detected fields, edit any values, then fill the page. The extension never auto-submits.</p>
+    <p><strong>Step 3 — Link account.</strong> Sign up or sign in on the dashboard first, then paste the code here.</p>
+    <ol class="steps">
+      <li>Open dashboard → <strong>Sign in</strong> → <strong>Continue with Google</strong></li>
+      <li>Click <strong>Generate extension code</strong></li>
+      <li>Enter that code below and click <strong>Link</strong></li>
+    </ol>
     <div class="pairing">
       <label for="pairing-code">Extension pairing code</label>
       <div class="pairing-row">
         <input id="pairing-code" type="text" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" />
         <button id="pair-extension" class="secondary" type="button">Link</button>
       </div>
-      <p id="pairing-status" class="pairing-status">Sign in on the dashboard, generate a code, then link here.</p>
+      <p id="pairing-status" class="pairing-status">Not linked yet.</p>
     </div>
+    <p>Review fields on the job page, edit values, then fill. The extension never auto-submits.</p>
     <div id="meta" class="meta">Waiting for active tab...</div>
     <div id="status" class="status">Inspecting page...</div>
     <div class="actions">
@@ -161,7 +175,7 @@
     </div>
     <div id="fields" class="fields"></div>
     <p style="margin-top:12px">Need to edit the source profile first?</p>
-    <button id="open-dashboard" class="secondary" type="button">Open Dashboard</button>
+    <button id="open-dashboard" class="secondary" type="button">Open dashboard (sign in)</button>
     <script src="extension-settings.js"></script>
     <script src="popup.js"></script>
   </body>

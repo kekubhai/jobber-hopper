@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MasterProfile, PersonalInfo } from "@jobber-hopper/shared";
 import { masterProfileToDbPayload, normalizeMasterProfile } from "@jobber-hopper/shared";
+import { isClerkUserId, updateClerkUserProfileFromMaster } from "@/lib/clerk-user-sync";
 
 type MasterProfileRow = {
   profile_id: string;
@@ -58,7 +59,7 @@ export async function upsertMasterProfileForUser(
   const profileId = userId;
   const payload = {
     ...masterProfileToDbPayload(profileId, normalized),
-    user_id: userId
+    clerk_user_id: userId
   };
 
   const { data, error } = await supabase
@@ -88,17 +89,22 @@ async function syncLinkedUserDisplayName(
     personal.preferredName?.trim() ||
     "";
 
-  if (!displayName) {
+  const { data: masterRow } = await supabase
+    .from("master_profiles")
+    .select("id, user_id, clerk_user_id, profile_id")
+    .eq("profile_id", row.profile_id)
+    .maybeSingle<{ id: string; user_id: string | null; clerk_user_id: string | null; profile_id: string }>();
+
+  if (!masterRow) {
     return;
   }
 
-  const { data: masterRow } = await supabase
-    .from("master_profiles")
-    .select("id, user_id")
-    .eq("profile_id", row.profile_id)
-    .maybeSingle<{ id: string; user_id: string | null }>();
+  const clerkUserId = masterRow.clerk_user_id ?? (isClerkUserId(row.profile_id) ? row.profile_id : null);
+  if (clerkUserId) {
+    await updateClerkUserProfileFromMaster(supabase, clerkUserId, masterRow.id, personal);
+  }
 
-  if (!masterRow?.user_id) {
+  if (!displayName || !masterRow.user_id) {
     return;
   }
 

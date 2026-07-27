@@ -206,7 +206,15 @@ function resolveFieldType(field: FormControl): string {
   return inputType || "text";
 }
 
-function buildFieldId(field: FormControl, index: number): string {
+function buildFieldId(field: FormControl, index: number, labelGuess = ""): string {
+  const platformId =
+    typeof getPlatformStableFieldId === "function"
+      ? getPlatformStableFieldId(field, index, labelGuess)
+      : "";
+  if (platformId) {
+    return platformId;
+  }
+
   if (field.id) {
     return field.id;
   }
@@ -240,12 +248,16 @@ function isScanCandidate(field: FormControl): boolean {
 }
 
 function collectFormControls(root?: ParentNode): FormControl[] {
+  const platformControls =
+    root === undefined && typeof getPlatformFormControls === "function"
+      ? getPlatformFormControls()
+      : null;
   const scanRoot =
     root ??
     (typeof getPlatformScanRoot === "function" ? getPlatformScanRoot() : document);
 
-  const nodes = scanRoot.querySelectorAll<FormControl>("input, textarea, select");
-  return Array.from(nodes).filter((field) => {
+  const controls = platformControls ?? Array.from(scanRoot.querySelectorAll<FormControl>("input, textarea, select"));
+  return controls.filter((field) => {
     if (!isScanCandidate(field)) {
       return false;
     }
@@ -258,7 +270,7 @@ function collectFormControls(root?: ParentNode): FormControl[] {
   });
 }
 
-function scanFormFields(root: ParentNode = document): DetectedFormField[] {
+function scanFormFields(root?: ParentNode): DetectedFormField[] {
   return scanFormFieldsWithElements(root).map(({ fieldId, labelGuess, type }) => ({
     fieldId,
     labelGuess,
@@ -266,15 +278,25 @@ function scanFormFields(root: ParentNode = document): DetectedFormField[] {
   }));
 }
 
-function scanFormFieldsWithElements(root: ParentNode = document): ScannedFormField[] {
+function scanFormFieldsWithElements(root?: ParentNode): ScannedFormField[] {
   const controls = collectFormControls(root);
 
-  return controls.map((field, index) => ({
-    fieldId: buildFieldId(field, index),
-    labelGuess: guessLabel(field),
-    type: resolveFieldType(field),
-    element: field
-  }));
+  const fields = controls.map((field, index) => {
+    const labelGuess = guessLabel(field);
+    return {
+      fieldId: buildFieldId(field, index, labelGuess),
+      labelGuess,
+      type: resolveFieldType(field),
+      element: field
+    };
+  });
+
+  const occurrences = new Map<string, number>();
+  return fields.map((field) => {
+    const occurrence = (occurrences.get(field.fieldId) ?? 0) + 1;
+    occurrences.set(field.fieldId, occurrence);
+    return occurrence === 1 ? field : { ...field, fieldId: `${field.fieldId}-${occurrence}` };
+  });
 }
 
 function logDetectedFormFields(fields: DetectedFormField[], reason: string): void {

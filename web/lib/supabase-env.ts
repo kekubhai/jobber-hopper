@@ -50,3 +50,7 @@ export function requireSupabasePublishableConfig(): { url: string; publishableKe
 
   return { url, publishableKey };
 }
+
+export function isSupabaseClientConfigured(): boolean {
+  return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
+}

@@ -7,11 +7,10 @@ export default function Home() {
       <div className="page-shell">
         <section className="hero">
           <div className="hero-copy">
-            <p className="eyebrow">Phase 0 and Phase 1 setup</p>
+            <p className="eyebrow">Jobber Hopper</p>
             <h1>One profile powers every application.</h1>
             <p>
-              Jobber Hopper now has a shared schema for browser actions and a master profile editor.
-              Fill this profile once, store it as the source of truth, then let the extension consume it for autofill later.
+              Sign in on this page with Google (Step 1), save your profile (Step 2), then link the Chrome extension with a one-time code (Step 3).
             </p>
             <div className="chip-row" aria-label="Capabilities">
               <span className="chip">Shared schema package</span>
@@ -41,10 +40,10 @@ export default function Home() {
 
         <div className="workspace-grid">
           <AuthPanel />
-          <section className="section-card">
+          <section className="section-card" id="profile">
             <div className="section-header">
               <div>
-                <p className="eyebrow">Master profile</p>
+                <p className="eyebrow">Step 2 — Master profile</p>
                 <h2>Profile source of truth</h2>
               </div>
               <p>

@@ -3,10 +3,6 @@ import { optionsCors, jsonWithCors } from "@/lib/api-cors";
 import { getAuthenticatedUser } from "@/lib/request-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
-type PairingCreateBody = {
-  refreshToken?: unknown;
-};
-
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 6;
 const CODE_TTL_MINUTES = 10;
@@ -15,25 +11,17 @@ export function OPTIONS() {
   return optionsCors();
 }
 
-/** Dashboard: create a pairing code while signed in (sends current Supabase session). */
+/** Dashboard: create a pairing code while signed in (Clerk session JWT). */
 export async function POST(request: Request) {
-  const auth = await getAuthenticatedUser(request);
-  if (!auth) {
+  const authUser = await getAuthenticatedUser(request);
+  if (!authUser) {
     return jsonWithCors({ error: "Sign in required" }, { status: 401 });
   }
 
-  let body: PairingCreateBody = {};
-  try {
-    body = (await request.json()) as PairingCreateBody;
-  } catch {
-    body = {};
-  }
-
-  const refreshToken = typeof body.refreshToken === "string" ? body.refreshToken.trim() : "";
   const accessToken = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim() ?? "";
 
-  if (!accessToken || !refreshToken) {
-    return jsonWithCors({ error: "Missing session tokens" }, { status: 400 });
+  if (!accessToken) {
+    return jsonWithCors({ error: "Missing session token" }, { status: 400 });
   }
 
   const code = generatePairingCode();
@@ -43,9 +31,9 @@ export async function POST(request: Request) {
     const supabase = getSupabaseAdminClient();
     const { error } = await supabase.from("extension_pairing_codes").insert({
       code,
-      user_id: auth.userId,
+      user_id: authUser.userId,
       access_token: accessToken,
-      refresh_token: refreshToken,
+      refresh_token: "",
       expires_at: expiresAt
     });
 

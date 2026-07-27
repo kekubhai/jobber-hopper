@@ -18,6 +18,7 @@
       "js": [
         "extension-settings.js",
         "platform-greenhouse.js",
+        "platform-workday.js",
         "platform.js",
         "field-detection.js",
         "profile-match.js",
