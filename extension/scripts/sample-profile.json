@@ -1,0 +1,65 @@
+{
+  "personal": {
+    "firstName": "Avery",
+    "lastName": "Okafor",
+    "preferredName": "Avery",
+    "email": "avery.okafor@example.com",
+    "phone": "+1 415 555 0142",
+    "linkedinUrl": "https://www.linkedin.com/in/avery-okafor",
+    "portfolioUrl": "https://avery.dev",
+    "headline": "Senior Frontend Engineer",
+    "summary": "Frontend engineer with 8 years building React/TypeScript UIs for B2B SaaS. I care about performance, accessibility, and shipping calmly."
+  },
+  "address": {
+    "line1": "742 Evergreen Terrace",
+    "line2": "Apt 3",
+    "city": "San Francisco",
+    "region": "CA",
+    "postalCode": "94110",
+    "country": "United States"
+  },
+  "education": [
+    {
+      "school": "UC Berkeley",
+      "degree": "B.S.",
+      "fieldOfStudy": "Computer Science",
+      "startDate": "2014-09",
+      "endDate": "2018-05",
+      "notes": ""
+    }
+  ],
+  "workHistory": [
+    {
+      "company": "Nimbus Labs",
+      "title": "Senior Frontend Engineer",
+      "location": "Remote",
+      "startDate": "2022-03",
+      "endDate": "",
+      "current": true,
+      "highlights": "Led migration to React Server Components; cut TTI on the dashboard by 42%."
+    },
+    {
+      "company": "Glyph Health",
+      "title": "Frontend Engineer",
+      "location": "San Francisco, CA",
+      "startDate": "2018-07",
+      "endDate": "2022-02",
+      "current": false,
+      "highlights": "Built the patient scheduling flow used by 1.2M patients."
+    }
+  ],
+  "customQaPairs": [
+    {
+      "question": "Why do you want to work here?",
+      "answer": "Your team's recent writeup on incremental React Server Component adoption maps to the migration I led at Nimbus -- I want to keep pushing on that problem at a larger scale."
+    },
+    {
+      "question": "What are your salary expectations?",
+      "answer": "Open to discussion; targeting the senior band for the local market."
+    }
+  ],
+  "files": {
+    "resume": "./resume.pdf",
+    "coverLetter": "./cover-letter.pdf"
+  }
+}

@@ -3,8 +3,11 @@
   "name": "Jobber Hopper",
   "description": "Review and fill job applications from your master profile. Rule-based matching with optional AI field mapping; you approve every fill.",
   "version": "1.0.0",
-  "permissions": ["activeTab", "storage"],
-  "host_permissions": ["http://localhost:3000/*"],
+  "permissions": ["activeTab", "storage", "cookies"],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://app.jobber-hopper.com/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },

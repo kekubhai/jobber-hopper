@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "build": "node scripts/sync-profile-match.cjs && tsc -p tsconfig.json && node scripts/verify-build.cjs",
-    "watch": "tsc -p tsconfig.json --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "test:profile-match": "node scripts/test-profile-match.cjs",
+    "harness:help": "node scripts/form-mapping-harness.cjs --help",
+    "harness:dry-run": "node scripts/form-mapping-harness.cjs --html scripts/sample-form.html --profile scripts/sample-profile.json --platform greenhouse --dry-run",
+    "harness:sample": "node scripts/form-mapping-harness.cjs --html scripts/sample-form.html --profile scripts/sample-profile.json --platform greenhouse --company 'Acme Corp' --job 'Senior Frontend Engineer, React/TypeScript'"
   },
   "dependencies": {
     "@jobber-hopper/shared": "workspace:*"

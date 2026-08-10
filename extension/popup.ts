@@ -1,22 +1,30 @@
+type SessionState = {
+  signedIn: boolean;
+  userId: string | null;
+  email: string | null;
+  origin: string | null;
+  cached: boolean;
+};
+
 const dashboardButton = document.getElementById("open-dashboard");
+const signOutButton = document.getElementById("sign-out");
 const reviewButton = document.getElementById("review-fields");
 const fillButton = document.getElementById("fill-page");
 const statusNode = document.getElementById("status");
 const metaNode = document.getElementById("meta");
 const fieldsNode = document.getElementById("fields");
-const pairingInput = document.getElementById("pairing-code");
-const pairingButton = document.getElementById("pair-extension");
-const pairingStatus = document.getElementById("pairing-status");
+const authNode = document.getElementById("auth-state");
 
 let currentReview: PopupReviewResponse | null = null;
-
-pairingButton?.addEventListener("click", () => {
-  void redeemPairingCode();
-});
+let currentSession: SessionState | null = null;
 
 dashboardButton?.addEventListener("click", async () => {
   const settings = await getExtensionSettings();
-  void chrome.tabs.create({ url: `${settings.apiBaseUrl}/dashboard#account` });
+  void chrome.tabs.create({ url: `${settings.apiBaseUrl}/dashboard` });
+});
+
+signOutButton?.addEventListener("click", () => {
+  void signOutFromExtension();
 });
 
 reviewButton?.addEventListener("click", () => {
@@ -27,57 +35,51 @@ fillButton?.addEventListener("click", () => {
   void applyFill();
 });
 
+void refreshSession();
 void loadReview();
 
-async function redeemPairingCode(): Promise<void> {
-  if (!(pairingInput instanceof HTMLInputElement)) {
-    return;
-  }
-
-  const code = pairingInput.value.trim().toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) {
-    setPairingStatus("Enter the 6-character code from the dashboard.");
-    return;
-  }
-
-  setPairingStatus("Linking...");
-
+async function refreshSession(): Promise<void> {
   try {
-    const settings = await getExtensionSettings();
-    const response = await fetch(`${settings.apiBaseUrl}/api/extension/pairing/redeem`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code })
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({})) as { error?: string };
-      throw new Error(payload.error ?? `Link failed (${response.status})`);
+    const response = await chrome.runtime.sendMessage({ type: "jobber-hopper:get-session" });
+    if (response && typeof response === "object") {
+      currentSession = response as SessionState;
+    } else {
+      currentSession = { signedIn: false, userId: null, email: null, origin: null, cached: false };
     }
-
-    const payload = await response.json() as {
-      profileId: string;
-      accessToken: string;
-      refreshToken: string;
-    };
-
-    await saveExtensionSessionTokens({
-      profileId: payload.profileId,
-      accessToken: payload.accessToken,
-      refreshToken: payload.refreshToken
-    });
-
-    pairingInput.value = "";
-    setPairingStatus("Linked. Profile sync uses your account.");
-    void loadReview();
-  } catch (error) {
-    setPairingStatus(error instanceof Error ? error.message : "Could not link extension");
+  } catch {
+    currentSession = { signedIn: false, userId: null, email: null, origin: null, cached: false };
   }
+  renderAuthState();
 }
 
-function setPairingStatus(message: string): void {
-  if (pairingStatus) {
-    pairingStatus.textContent = message;
+function renderAuthState(): void {
+  if (!authNode) return;
+  if (!currentSession) {
+    authNode.textContent = "Checking sign-in...";
+    return;
+  }
+  if (!currentSession.signedIn) {
+    authNode.textContent = "Not signed in. Open the dashboard to sign in.";
+    signOutButton?.classList.add("hidden");
+    return;
+  }
+  const label = currentSession.email ?? currentSession.userId ?? "unknown account";
+  const suffix = currentSession.cached ? " (cached)" : "";
+  authNode.textContent = `Signed in as ${label}${suffix}`;
+  signOutButton?.classList.remove("hidden");
+}
+
+async function signOutFromExtension(): Promise<void> {
+  await chrome.runtime.sendMessage({ type: "jobber-hopper:sign-out" });
+  const settings = await getExtensionSettings();
+  // Clerk's hosted sign-out is at /sign-out by default; the web app may
+  // override with `clerkMiddleware` or a custom route. Either way, opening
+  // it is what clears the httpOnly session cookie.
+  void chrome.tabs.create({ url: `${settings.apiBaseUrl}/sign-out` });
+  currentSession = { signedIn: false, userId: null, email: null, origin: null, cached: false };
+  renderAuthState();
+  if (statusNode) {
+    statusNode.textContent = "Signed out. Sign in again on the dashboard to use the extension.";
   }
 }
 

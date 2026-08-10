@@ -77,7 +77,12 @@ declare namespace chrome {
     const local: {
       get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
       set(items: Record<string, unknown>): Promise<void>;
+      remove(keys: string | string[]): Promise<void>;
     };
+  }
+
+  namespace cookies {
+    function get(details: { url: string; name: string }): Promise<{ value?: string } | null>;
   }
 
   namespace tabs {

@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Sample Greenhouse-style apply form</title>
+  </head>
+  <body>
+    <form id="application_form" action="/apply" method="post">
+      <div id="main_fields">
+        <div class="field">
+          <label for="first_name">First name<span class="asterisk">*</span></label>
+          <input id="first_name" name="first_name" type="text" required />
+        </div>
+        <div class="field">
+          <label for="last_name">Last name<span class="asterisk">*</span></label>
+          <input id="last_name" name="last_name" type="text" required />
+        </div>
+        <div class="field">
+          <label for="email">Email<span class="asterisk">*</span></label>
+          <input id="email" name="email" type="email" required />
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" />
+        </div>
+        <div class="field">
+          <label for="address">Address</label>
+          <input id="address" name="address" type="text" />
+        </div>
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" />
+        </div>
+        <div class="field">
+          <label for="state">State</label>
+          <input id="state" name="state" type="text" />
+        </div>
+        <div class="field">
+          <label for="zip">Zip</label>
+          <input id="zip" name="zip" type="text" />
+        </div>
+        <div class="field">
+          <label for="country">Country</label>
+          <input id="country" name="country" type="text" />
+        </div>
+        <div class="field">
+          <label for="linkedin">LinkedIn URL</label>
+          <input id="linkedin" name="linkedin" type="url" />
+        </div>
+        <div class="field">
+          <label for="resume">Resume<span class="asterisk">*</span></label>
+          <input id="resume" name="resume" type="file" required />
+        </div>
+        <div class="field">
+          <label for="cover_letter">Cover letter</label>
+          <textarea id="cover_letter" name="cover_letter"></textarea>
+        </div>
+      </div>
+
+      <div class="custom-question">
+        <label for="q_why">Why do you want to work here?</label>
+        <textarea id="q_why" name="q_why"></textarea>
+      </div>
+
+      <div class="custom-question">
+        <label for="q_salary">What are your salary expectations?</label>
+        <input id="q_salary" name="q_salary" type="text" />
+      </div>
+
+      <div class="custom-question">
+        <label for="q_authorized">Are you authorized to work in the US?</label>
+        <select id="q_authorized" name="q_authorized">
+          <option value=""></option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+
+      <div class="custom-question">
+        <label for="q_visa">Will you require visa sponsorship?</label>
+        <select id="q_visa" name="q_visa">
+          <option value=""></option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+
+      <div class="demographic_question">
+        <fieldset>
+          <legend>Gender (voluntary)</legend>
+          <label><input type="radio" name="gender" value="female" /> Female</label>
+          <label><input type="radio" name="gender" value="male" /> Male</label>
+          <label><input type="radio" name="gender" value="decline" /> Prefer not to say</label>
+        </fieldset>
+      </div>
+
+      <div class="demographic_question">
+        <fieldset>
+          <legend>Veteran status (voluntary)</legend>
+          <label><input type="radio" name="veteran" value="yes" /> Yes</label>
+          <label><input type="radio" name="veteran" value="no" /> No</label>
+          <label><input type="radio" name="veteran" value="decline" /> Prefer not to say</label>
+        </fieldset>
+      </div>
+
+      <div class="field">
+        <label>
+          <input type="checkbox" name="terms" value="1" required />
+          I agree to the terms and conditions
+        </label>
+      </div>
+    </form>
+  </body>
+</html>

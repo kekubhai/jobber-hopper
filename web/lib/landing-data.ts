@@ -69,16 +69,26 @@ export const HERO_JOBS: MockJob[] = [
   }
 ];
 
-export type Stat = {
-  value: number;
-  suffix: string;
+export type StatItem = {
+  value: number | string;
+  suffix?: string;
   label: string;
 };
 
-export const STATS: Stat[] = [
+/** @deprecated use StatItem */
+export type Stat = StatItem;
+
+export const STATS: StatItem[] = [
   { value: 10, suffix: "+", label: "Job platforms supported" },
   { value: 24, suffix: "+", label: "Fields autofilled per application" },
   { value: 30, suffix: "s", label: "Average time to apply" }
+];
+
+export const DASHBOARD_STATS: StatItem[] = [
+  { value: "1 profile", label: "for every application" },
+  { value: "Greenhouse", label: "and Workday ready" },
+  { value: "AI assist", label: "on demand, never auto" },
+  { value: "Open source", label: "extension types" }
 ];
 
 export type MiniFeature = {

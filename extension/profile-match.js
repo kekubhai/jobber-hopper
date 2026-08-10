@@ -149,20 +149,25 @@ function resolveAutofillValue(profile, path, labelGuess, fieldId) {
     return getProfileFieldValue(profile, path);
 }
 function matchDetectedFields(profile, fields) {
-    const usedPaths = new Set();
+    // Dedupe by (path, value), not by path alone. A "Name" field resolves
+    // personal.firstName to "<first> <last>" while a "First name" field resolves
+    // it to "<first>" -- both should fill, since the values differ.
+    const usedValues = new Map();
     return fields.map((field) => {
         const profileFieldPath = matchProfileFieldPath(field.labelGuess, field.fieldId, field.type);
         if (!profileFieldPath) {
             return { ...field, profileFieldPath: null, value: null };
         }
-        if (usedPaths.has(profileFieldPath)) {
-            return { ...field, profileFieldPath, value: null };
-        }
         const value = resolveAutofillValue(profile, profileFieldPath, field.labelGuess, field.fieldId);
         if (!value) {
             return { ...field, profileFieldPath, value: null };
         }
-        usedPaths.add(profileFieldPath);
+        const previouslyUsed = usedValues.get(profileFieldPath);
+        if (previouslyUsed !== undefined && previouslyUsed === value) {
+            // Same path AND same value -- another field already took this fill.
+            return { ...field, profileFieldPath, value: null };
+        }
+        usedValues.set(profileFieldPath, value);
         return { ...field, profileFieldPath, value };
     });
 }

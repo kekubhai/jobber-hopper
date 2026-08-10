@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import { STATS } from "@/lib/landing-data";
+import { STATS, type StatItem } from "@/lib/landing-data";
 
 function CountUpValue({ target, suffix }: { target: number; suffix: string }) {
   const reduceMotion = useReducedMotion();
@@ -46,14 +46,23 @@ function CountUpValue({ target, suffix }: { target: number; suffix: string }) {
   );
 }
 
-export function Stats() {
+function StaticValue({ value }: { value: string }) {
+  return <span className="tabular-nums">{value}</span>;
+}
+
+export function Stats({ items }: { items?: StatItem[] } = {}) {
+  const data = items ?? STATS;
   return (
-    <dl className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-      {STATS.map((stat) => (
+    <dl className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {data.map((stat) => (
         <div key={stat.label} className="flex flex-col gap-1 border-l-4 border-[#1468F5] pl-5">
           <dt className="order-2 text-sm font-medium text-[#5b6478]">{stat.label}</dt>
-          <dd className="order-1 text-4xl font-extrabold tracking-tight text-[#0a1633] sm:text-5xl">
-            <CountUpValue target={stat.value} suffix={stat.suffix} />
+          <dd className="order-1 text-3xl font-extrabold tracking-tight text-[#0a1633] sm:text-4xl">
+            {typeof stat.value === "number" ? (
+              <CountUpValue target={stat.value} suffix={stat.suffix ?? ""} />
+            ) : (
+              <StaticValue value={stat.value} />
+            )}
           </dd>
         </div>
       ))}

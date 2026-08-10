@@ -35,6 +35,35 @@
         text-overflow: ellipsis;
       }
 
+      .auth {
+        margin: 0 0 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .auth .auth-text {
+        font-size: 12px;
+        color: #1f2937;
+        line-height: 1.4;
+      }
+
+      .auth.auth-signed-out {
+        background: #fffaf0;
+        border-color: #fbbf24;
+      }
+
+      .auth button {
+        width: auto;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
       .status {
         margin-bottom: 12px;
         color: #1f2937;
@@ -67,6 +96,10 @@
       button:disabled {
         opacity: 0.55;
         cursor: not-allowed;
+      }
+
+      .hidden {
+        display: none !important;
       }
 
       .fields {
@@ -123,64 +156,13 @@
         box-sizing: border-box;
         font: inherit;
       }
-
-      .pairing {
-        margin-bottom: 12px;
-        padding: 10px;
-        border-radius: 10px;
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-      }
-
-      .pairing label {
-        display: block;
-        font-size: 12px;
-        font-weight: 600;
-        margin-bottom: 6px;
-      }
-
-      .pairing-row {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-      }
-
-      .pairing-row input {
-        margin-top: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .pairing-status {
-        margin: 8px 0 0;
-        font-size: 12px;
-        color: #6b7280;
-      }
-
-      .steps {
-        margin: 0 0 12px 18px;
-        padding: 0;
-        color: #4b5563;
-        font-size: 12px;
-        line-height: 1.5;
-      }
     </style>
   </head>
   <body>
     <h1>Jobber Hopper</h1>
-    <p><strong>Step 3 — Link account.</strong> Sign up or sign in on the dashboard first, then paste the code here.</p>
-    <ol class="steps">
-      <li>Open dashboard → <strong>Sign in</strong> → <strong>Continue with Google</strong></li>
-      <li>Click <strong>Generate extension code</strong></li>
-      <li>Enter that code below and click <strong>Link</strong></li>
-    </ol>
-    <div class="pairing">
-      <label for="pairing-code">Extension pairing code</label>
-      <div class="pairing-row">
-        <input id="pairing-code" type="text" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code" />
-        <button id="pair-extension" class="secondary" type="button">Link</button>
-      </div>
-      <p id="pairing-status" class="pairing-status">Not linked yet.</p>
+    <div id="auth-state" class="auth auth-signed-out">
+      <span class="auth-text">Checking sign-in...</span>
+      <button id="sign-out" class="secondary hidden" type="button">Sign out</button>
     </div>
     <p>Review fields on the job page, edit values, then fill. The extension never auto-submits.</p>
     <div id="meta" class="meta">Waiting for active tab...</div>
@@ -191,7 +173,7 @@
     </div>
     <div id="fields" class="fields"></div>
     <p style="margin-top:12px">Need to edit the source profile first?</p>
-    <button id="open-dashboard" class="secondary" type="button">Open dashboard (sign in)</button>
+    <button id="open-dashboard" class="secondary" type="button">Open dashboard</button>
     <script src="extension-settings.js"></script>
     <script src="popup.js"></script>
   </body>
