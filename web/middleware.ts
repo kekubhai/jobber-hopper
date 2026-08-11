@@ -35,14 +35,24 @@ function applyCorsHeaders<T extends Response>(response: T): T {
 
 const clerk = clerkMiddleware();
 
+function clerkConfigured(): boolean {
+  const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+  const sk = process.env.CLERK_SECRET_KEY?.trim();
+  if (!pk || !sk) return false;
+  const isProd = process.env.VERCEL_ENV === "production";
+  if (isProd && pk.startsWith("pk_test_")) return false;
+  return true;
+}
+
 export default function middleware(request: NextRequest, event: unknown) {
   if (isApiPath(request.nextUrl.pathname)) {
-    // Short-circuit preflight before Clerk sees it.
     if (request.method === "OPTIONS") {
       return corsPreflightResponse();
     }
-    // For real API requests, let Clerk run (it reads the session cookie / token)
-    // then add CORS headers to whatever it returns.
+    if (!clerkConfigured()) {
+      const res = NextResponse.next();
+      return applyCorsHeaders(res);
+    }
     const result = (clerk as unknown as (req: NextRequest, ev: unknown) => Response | Promise<Response> | undefined)(
       request,
       event
@@ -51,6 +61,10 @@ export default function middleware(request: NextRequest, event: unknown) {
       return result.then((res) => (res ? applyCorsHeaders(res) : NextResponse.next()));
     }
     if (result) return applyCorsHeaders(result);
+    return NextResponse.next();
+  }
+
+  if (!clerkConfigured()) {
     return NextResponse.next();
   }
 

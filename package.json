@@ -13,5 +13,8 @@
     "build:web": "pnpm --dir web build",
     "dev:web": "pnpm --dir web dev",
     "watch:extension": "pnpm --dir extension watch"
+  },
+  "devDependencies": {
+    "next": "16.2.4"
   }
 }

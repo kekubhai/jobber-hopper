@@ -1,8 +1,8 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Manrope, Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { ClerkRootProvider } from "./clerk-root-provider";
 import { ClerkUserSync } from "./clerk-user-sync";
+import { ClerkProviderGuard } from "./clerk-provider-guard";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -33,12 +33,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.variable} ${fraunces.variable} ${jakarta.variable}`}>
-        <ClerkProvider>
+        <ClerkProviderGuard>
           <ClerkRootProvider>
             <ClerkUserSync />
             {children}
           </ClerkRootProvider>
-        </ClerkProvider>
+        </ClerkProviderGuard>
       </body>
     </html>
   );

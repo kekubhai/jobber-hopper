@@ -112,7 +112,11 @@ export async function POST(request: Request) {
   try {
     const supabase = getSupabaseAdminClient();
     if (auth) {
-      await syncClerkUserToSupabase(auth.userId);
+      try {
+        await syncClerkUserToSupabase(auth.userId);
+      } catch (error) {
+        console.warn("Clerk sync on profile POST skipped", error);
+      }
     }
     const data = auth
       ? await upsertMasterProfileForUser(supabase, auth.userId, profile)
