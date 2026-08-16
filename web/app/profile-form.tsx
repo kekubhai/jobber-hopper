@@ -18,6 +18,8 @@ import { useProfileAuthHeaders } from "./use-profile-auth-headers";
 
 const storageKey = PROFILE_STORAGE_KEY;
 const defaultProfileId = "local-dev-user";
+const NAME_PREFIXES = ["Mr.", "Ms.", "Mrs.", "Mx.", "Dr.", "Prof."] as const;
+const SALARY_CURRENCIES = ["USD", "EUR", "GBP", "INR", "CAD", "AUD", "SGD"] as const;
 
 export function ProfileForm() {
   if (isClerkClientConfigured()) {
@@ -214,11 +216,29 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
           <Field label="First name">
             <input value={profile.personal.firstName} onChange={(event) => updateSection("personal", "firstName", event.target.value)} />
           </Field>
+          <Field label="Middle name">
+            <input value={profile.personal.middleName} onChange={(event) => updateSection("personal", "middleName", event.target.value)} />
+          </Field>
           <Field label="Last name">
             <input value={profile.personal.lastName} onChange={(event) => updateSection("personal", "lastName", event.target.value)} />
           </Field>
           <Field label="Preferred name">
             <input value={profile.personal.preferredName} onChange={(event) => updateSection("personal", "preferredName", event.target.value)} />
+          </Field>
+          <Field label="Prefix">
+            <select value={profile.personal.namePrefix} onChange={(event) => updateSection("personal", "namePrefix", event.target.value)}>
+              <option value="">Not specified</option>
+              {NAME_PREFIXES.map((prefix) => (
+                <option key={prefix} value={prefix}>{prefix}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Suffix">
+            <input
+              value={profile.personal.nameSuffix}
+              onChange={(event) => updateSection("personal", "nameSuffix", event.target.value)}
+              placeholder="Jr., PhD"
+            />
           </Field>
           <p className="help-copy" style={{ gridColumn: "1 / -1", margin: 0 }}>
             Legal name for forms is saved as <strong>First name</strong> + <strong>Last name</strong> in Supabase under{" "}
@@ -230,11 +250,21 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
           <Field label="Phone">
             <input value={profile.personal.phone} onChange={(event) => updateSection("personal", "phone", event.target.value)} />
           </Field>
+          <Field label="Pronouns">
+            <input
+              value={profile.personal.pronouns}
+              onChange={(event) => updateSection("personal", "pronouns", event.target.value)}
+              placeholder="they/them"
+            />
+          </Field>
           <Field label="Headline">
             <input value={profile.personal.headline} onChange={(event) => updateSection("personal", "headline", event.target.value)} />
           </Field>
           <Field label="LinkedIn URL">
             <input value={profile.personal.linkedinUrl} onChange={(event) => updateSection("personal", "linkedinUrl", event.target.value)} />
+          </Field>
+          <Field label="GitHub URL">
+            <input value={profile.personal.githubUrl} onChange={(event) => updateSection("personal", "githubUrl", event.target.value)} />
           </Field>
           <Field label="Portfolio URL">
             <input value={profile.personal.portfolioUrl} onChange={(event) => updateSection("personal", "portfolioUrl", event.target.value)} />
@@ -245,6 +275,127 @@ function ProfileFormContent({ authHeaders }: { authHeaders: Record<string, strin
           <label>Professional summary</label>
           <textarea value={profile.personal.summary} onChange={(event) => updateSection("personal", "summary", event.target.value)} />
         </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Work eligibility</p>
+            <h3>Authorization, availability, and compensation</h3>
+          </div>
+          <p>
+            Nearly every application asks these before it will submit. Answer once here and the extension can fill them
+            instead of stopping for you.
+          </p>
+        </div>
+
+        <div className="grid-3">
+          <Field label="Legally authorized to work">
+            <select
+              value={profile.personal.authorizedToWork}
+              onChange={(event) => updateSection("personal", "authorizedToWork", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </Field>
+          <Field label="Requires visa sponsorship">
+            <select
+              value={profile.personal.requiresSponsorship}
+              onChange={(event) => updateSection("personal", "requiresSponsorship", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </Field>
+          <Field label="Authorization country">
+            <input
+              value={profile.personal.workAuthCountry}
+              onChange={(event) => updateSection("personal", "workAuthCountry", event.target.value)}
+              placeholder="United States"
+            />
+          </Field>
+          <Field label="Visa or permit status">
+            <input
+              value={profile.personal.visaStatus}
+              onChange={(event) => updateSection("personal", "visaStatus", event.target.value)}
+              placeholder="Citizen, H-1B, F-1 OPT"
+            />
+          </Field>
+          <Field label="Notice period (days)">
+            <input
+              type="number"
+              min={0}
+              value={profile.personal.noticePeriodDays}
+              onChange={(event) => updateSection("personal", "noticePeriodDays", event.target.value)}
+              placeholder="30"
+            />
+          </Field>
+          <Field label="Earliest start date">
+            <input
+              type="date"
+              value={profile.personal.earliestStartDate}
+              onChange={(event) => updateSection("personal", "earliestStartDate", event.target.value)}
+            />
+          </Field>
+          <Field label="Expected salary">
+            <input
+              value={profile.personal.expectedSalary}
+              onChange={(event) => updateSection("personal", "expectedSalary", event.target.value)}
+              placeholder="120000"
+            />
+          </Field>
+          <Field label="Currency">
+            <select
+              value={profile.personal.salaryCurrency}
+              onChange={(event) => updateSection("personal", "salaryCurrency", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              {SALARY_CURRENCIES.map((currency) => (
+                <option key={currency} value={currency}>{currency}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Salary period">
+            <select
+              value={profile.personal.salaryPeriod}
+              onChange={(event) => updateSection("personal", "salaryPeriod", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              <option value="Per year">Per year</option>
+              <option value="Per month">Per month</option>
+              <option value="Per hour">Per hour</option>
+            </select>
+          </Field>
+          <Field label="Willing to relocate">
+            <select
+              value={profile.personal.willingToRelocate}
+              onChange={(event) => updateSection("personal", "willingToRelocate", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </Field>
+          <Field label="Work mode preference">
+            <select
+              value={profile.personal.workModePreference}
+              onChange={(event) => updateSection("personal", "workModePreference", event.target.value)}
+            >
+              <option value="">Not specified</option>
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="On-site">On-site</option>
+            </select>
+          </Field>
+        </div>
+
+        <p className="help-copy" style={{ marginTop: 14 }}>
+          Answers are stored as the text shown here so the extension can match them against a form&apos;s own dropdown
+          options. Leave anything blank and the extension will send you to that field instead of guessing.
+        </p>
       </section>
 
       <section className="section-card">

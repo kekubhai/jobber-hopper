@@ -73,12 +73,16 @@ function parseResumeText(text: string): MasterProfile {
   const email = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i)?.[0] ?? "";
   const linkedIn = text.match(/https?:\/\/(?:[\w-]+\.)?linkedin\.com\/[^\s|,;]+/i)?.[0] ?? "";
   const urls = text.match(/https?:\/\/[^\s|,;]+/gi) ?? [];
-  const portfolio = urls.find((url) => !/linkedin\.com/i.test(url)) ?? "";
+  const github = urls.find((url) => /github\.(com|io)/i.test(url)) ?? "";
+  // Portfolio excludes both known profile hosts — otherwise a resume that only
+  // lists GitHub would store the same URL twice and lose the real website.
+  const portfolio = urls.find((url) => !/linkedin\.com/i.test(url) && !/github\.(com|io)/i.test(url)) ?? "";
   const phone = text.match(/(?:\+\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?){2,4}\d{3,4}/)?.[0] ?? "";
 
   profile.personal.email = email;
   profile.personal.phone = phone;
   profile.personal.linkedinUrl = linkedIn;
+  profile.personal.githubUrl = github;
   profile.personal.portfolioUrl = portfolio;
 
   const nameLine = lines.find((line) => isLikelyName(line));

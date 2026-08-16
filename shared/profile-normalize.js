@@ -14,6 +14,47 @@ function pickString(source, keys) {
     }
     return "";
 }
+/**
+ * Accepts booleans and numbers as well as strings, so a profile that was saved
+ * with `requiresSponsorship: false` or `noticePeriodDays: 30` still normalizes
+ * into the string form the autofill layer expects.
+ */
+function pickYesNo(source, keys) {
+    for (const key of keys) {
+        const value = source[key];
+        if (typeof value === "boolean") {
+            return value ? "Yes" : "No";
+        }
+        if (typeof value !== "string") {
+            continue;
+        }
+        const trimmed = value.trim();
+        if (!trimmed) {
+            continue;
+        }
+        const lowered = trimmed.toLowerCase();
+        if (lowered === "true" || lowered === "yes" || lowered === "y") {
+            return "Yes";
+        }
+        if (lowered === "false" || lowered === "no" || lowered === "n") {
+            return "No";
+        }
+        return trimmed;
+    }
+    return "";
+}
+function pickNumericString(source, keys) {
+    for (const key of keys) {
+        const value = source[key];
+        if (typeof value === "number" && Number.isFinite(value)) {
+            return String(value);
+        }
+        if (typeof value === "string" && value.trim()) {
+            return value.trim();
+        }
+    }
+    return "";
+}
 function normalizePersonalInfo(input) {
     const base = (0, index_1.createEmptyPersonalInfo)();
     if (!input || typeof input !== "object") {
@@ -22,14 +63,79 @@ function normalizePersonalInfo(input) {
     const source = input;
     return {
         firstName: pickString(source, ["firstName", "first_name", "first", "givenName", "given_name"]),
+        middleName: pickString(source, ["middleName", "middle_name", "middleInitial", "middle_initial"]),
         lastName: pickString(source, ["lastName", "last_name", "last", "surname", "familyName", "family_name"]),
         preferredName: pickString(source, ["preferredName", "preferred_name", "displayName", "display_name", "nickname"]),
+        namePrefix: pickString(source, ["namePrefix", "name_prefix", "prefix", "salutation", "honorific"]),
+        nameSuffix: pickString(source, ["nameSuffix", "name_suffix", "suffix"]),
+        pronouns: pickString(source, ["pronouns", "preferredPronouns", "preferred_pronouns"]),
         email: pickString(source, ["email", "emailAddress", "email_address"]),
         phone: pickString(source, ["phone", "phoneNumber", "phone_number", "mobile", "tel"]),
         linkedinUrl: pickString(source, ["linkedinUrl", "linkedin_url", "linkedin"]),
+        githubUrl: pickString(source, ["githubUrl", "github_url", "github"]),
         portfolioUrl: pickString(source, ["portfolioUrl", "portfolio_url", "website", "portfolio"]),
         headline: pickString(source, ["headline", "title", "jobTitle", "job_title"]),
-        summary: pickString(source, ["summary", "bio", "about", "aboutMe", "about_me"])
+        summary: pickString(source, ["summary", "bio", "about", "aboutMe", "about_me"]),
+        authorizedToWork: pickYesNo(source, [
+            "authorizedToWork",
+            "authorized_to_work",
+            "workAuthorization",
+            "work_authorization",
+            "legallyAuthorized"
+        ]),
+        requiresSponsorship: pickYesNo(source, [
+            "requiresSponsorship",
+            "requires_sponsorship",
+            "needsSponsorship",
+            "needs_sponsorship",
+            "visaSponsorship"
+        ]),
+        workAuthCountry: pickString(source, [
+            "workAuthCountry",
+            "work_auth_country",
+            "workAuthorizationCountry",
+            "work_authorization_country"
+        ]),
+        visaStatus: pickString(source, ["visaStatus", "visa_status", "immigrationStatus", "immigration_status", "visa"]),
+        noticePeriodDays: pickNumericString(source, [
+            "noticePeriodDays",
+            "notice_period_days",
+            "noticePeriod",
+            "notice_period"
+        ]),
+        earliestStartDate: pickString(source, [
+            "earliestStartDate",
+            "earliest_start_date",
+            "availableFrom",
+            "available_from",
+            "startDate",
+            "start_date"
+        ]),
+        expectedSalary: pickNumericString(source, [
+            "expectedSalary",
+            "expected_salary",
+            "desiredSalary",
+            "desired_salary",
+            "expectedCtc",
+            "expected_ctc"
+        ]),
+        salaryCurrency: pickString(source, ["salaryCurrency", "salary_currency", "currency"]),
+        salaryPeriod: pickString(source, ["salaryPeriod", "salary_period", "payPeriod", "pay_period"]),
+        willingToRelocate: pickYesNo(source, [
+            "willingToRelocate",
+            "willing_to_relocate",
+            "openToRelocation",
+            "open_to_relocation",
+            "relocate"
+        ]),
+        workModePreference: pickString(source, [
+            "workModePreference",
+            "work_mode_preference",
+            "workMode",
+            "work_mode",
+            "remotePreference",
+            "remote_preference"
+        ])
     };
 }
 /** Stored in `master_profiles.personal` — includes `fullName` / `name` for easy viewing in Supabase. */
