@@ -1,13 +1,29 @@
 export type ProfileFieldPath =
   | "personal.firstName"
+  | "personal.middleName"
   | "personal.lastName"
   | "personal.preferredName"
+  | "personal.namePrefix"
+  | "personal.nameSuffix"
+  | "personal.pronouns"
   | "personal.email"
   | "personal.phone"
   | "personal.linkedinUrl"
+  | "personal.githubUrl"
   | "personal.portfolioUrl"
   | "personal.headline"
   | "personal.summary"
+  | "personal.authorizedToWork"
+  | "personal.requiresSponsorship"
+  | "personal.workAuthCountry"
+  | "personal.visaStatus"
+  | "personal.noticePeriodDays"
+  | "personal.earliestStartDate"
+  | "personal.expectedSalary"
+  | "personal.salaryCurrency"
+  | "personal.salaryPeriod"
+  | "personal.willingToRelocate"
+  | "personal.workModePreference"
   | "address.line1"
   | "address.line2"
   | "address.city"
@@ -35,6 +51,13 @@ export type MatchedFormField = {
   value: string | null;
 };
 
+/**
+ * Order is significant: `matchProfileFieldPath` returns the first rule whose
+ * pattern hits, so narrower rules must precede broader ones that share a word.
+ * The pairings that matter are called out inline. Patterns are tested against
+ * `normalizeTextForMatching` output, so they must never contain punctuation or
+ * underscores — those are collapsed to spaces before matching.
+ */
 export const PROFILE_MATCH_RULES: ProfileMatchRule[] = [
   {
     path: "personal.email",
@@ -46,12 +69,31 @@ export const PROFILE_MATCH_RULES: ProfileMatchRule[] = [
     patterns: [/\bfirst name\b/, /\bfirst_name\b/, /\bgiven name\b/, /\bfname\b/, /\bforename\b/]
   },
   {
+    path: "personal.middleName",
+    patterns: [/\bmiddle name\b/, /\bmiddle initial\b/, /\bmname\b/]
+  },
+  {
     path: "personal.lastName",
     patterns: [/\blast name\b/, /\blast_name\b/, /\bsurname\b/, /\bfamily name\b/, /\blname\b/]
   },
   {
     path: "personal.preferredName",
     patterns: [/\bpreferred name\b/, /\bdisplay name\b/, /\bnickname\b/]
+  },
+  {
+    path: "personal.pronouns",
+    patterns: [/\bpronouns?\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.namePrefix",
+    patterns: [/\bname prefix\b/, /\btitle prefix\b/, /\bsalutation\b/, /\bhonorific\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.nameSuffix",
+    patterns: [/\bname suffix\b/, /\bsuffix\b/],
+    inputTypes: ["select", "text"]
   },
   {
     path: "personal.phone",
@@ -63,13 +105,123 @@ export const PROFILE_MATCH_RULES: ProfileMatchRule[] = [
     patterns: [/\blinkedin\b/, /\blinked in\b/]
   },
   {
+    // Before portfolio: a form with separate GitHub and website fields would
+    // otherwise send both to portfolioUrl and lose the second to `usedPaths`.
+    path: "personal.githubUrl",
+    patterns: [/\bgithub\b/, /\bgit hub\b/],
+    inputTypes: ["url", "text"]
+  },
+  {
     path: "personal.portfolioUrl",
-    patterns: [/\bportfolio\b/, /\bwebsite\b/, /\bpersonal site\b/, /\bgithub\b/],
+    patterns: [/\bportfolio\b/, /\bwebsite\b/, /\bpersonal site\b/],
     inputTypes: ["url", "text"]
   },
   {
     path: "personal.headline",
     patterns: [/\bheadline\b/, /\bprofessional title\b/, /\bcurrent role\b/]
+  },
+  {
+    // Before authorizedToWork and visaStatus: the standard Workday phrasing is
+    // "will you now or in the future require sponsorship for employment visa
+    // status", which contains both "visa status" and "work".
+    path: "personal.requiresSponsorship",
+    patterns: [
+      /\bsponsorship\b/,
+      /\bsponsor\b/,
+      /\brequire sponsorship\b/,
+      /\bvisa sponsorship\b/,
+      /\bneed sponsorship\b/
+    ],
+    inputTypes: ["select", "text"]
+  },
+  {
+    // Before authorizedToWork ("work authorization") and address.country.
+    path: "personal.workAuthCountry",
+    patterns: [/\bcountry of (work )?authorization\b/, /\bwork authorization country\b/, /\bauthorized to work in which\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.authorizedToWork",
+    patterns: [
+      /\blegally authorized to work\b/,
+      /\bauthorized to work\b/,
+      /\bauthorised to work\b/,
+      /\bwork authorization\b/,
+      /\bwork authorisation\b/,
+      /\beligible to work\b/,
+      /\bright to work\b/,
+      /\blegally eligible\b/
+    ],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.visaStatus",
+    patterns: [/\bvisa status\b/, /\bvisa type\b/, /\bcurrent visa\b/, /\bimmigration status\b/, /\bwork permit\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.noticePeriodDays",
+    patterns: [/\bnotice period\b/, /\bhow (much|long) notice\b/, /\bserving notice\b/],
+    inputTypes: ["select", "text", "number"]
+  },
+  {
+    // Deliberately no bare "start date" pattern — education and work-history
+    // sections on Greenhouse and Lever use that exact label, and filling them
+    // with an availability date is a wrong fill rather than a missed one.
+    path: "personal.earliestStartDate",
+    patterns: [
+      /\bearliest (possible )?start\b/,
+      /\bavailable start date\b/,
+      /\bpreferred start date\b/,
+      /\bstart date available\b/,
+      /\bdate available\b/,
+      /\bavailability date\b/,
+      /\bavailable to start\b/,
+      /\bwhen can you start\b/,
+      /\bjoining date\b/,
+      /\bdate of joining\b/
+    ],
+    inputTypes: ["date", "month", "text"]
+  },
+  {
+    // Currency and period precede expectedSalary: "expected salary currency"
+    // would otherwise match the salary rule and fill an amount into a picker.
+    path: "personal.salaryCurrency",
+    patterns: [/\bsalary currency\b/, /\bpay currency\b/, /\bcompensation currency\b/, /\bcurrency\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.salaryPeriod",
+    patterns: [/\bsalary period\b/, /\bpay period\b/, /\bpay frequency\b/, /\bcompensation period\b/, /\bsalary frequency\b/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.expectedSalary",
+    patterns: [
+      /\bexpected (salary|compensation|pay|ctc)\b/,
+      /\bdesired (salary|compensation|pay)\b/,
+      /\bsalary expectation/,
+      /\bcompensation expectation/,
+      /\bsalary requirement/,
+      /\bexpected ctc\b/
+    ],
+    inputTypes: ["text", "number"]
+  },
+  {
+    path: "personal.willingToRelocate",
+    patterns: [/\bwilling to relocate\b/, /\bopen to relocat/, /\bwould you relocate\b/, /\brelocat/],
+    inputTypes: ["select", "text"]
+  },
+  {
+    path: "personal.workModePreference",
+    patterns: [
+      /\bwork (mode|arrangement|setting|preference)\b/,
+      /\bworkplace type\b/,
+      /\bremote preference\b/,
+      /\bremote or (onsite|on site|hybrid)\b/,
+      /\bonsite or remote\b/
+    ],
+    inputTypes: ["select", "text"]
   },
   {
     path: "personal.summary",
@@ -217,7 +369,10 @@ export function matchDetectedFields(
   profile: MasterProfileLike,
   fields: Array<{ fieldId: string; labelGuess: string; type: string }>
 ): MatchedFormField[] {
-  const usedPaths = new Set<ProfileFieldPath>();
+  // Dedupe by (path, value), not by path alone. A "Name" field resolves
+  // personal.firstName to "<first> <last>" while a "First name" field resolves
+  // it to "<first>" -- both should fill, since the values differ.
+  const usedValues = new Map<ProfileFieldPath, string>();
 
   return fields.map((field) => {
     const profileFieldPath = matchProfileFieldPath(field.labelGuess, field.fieldId, field.type);
@@ -226,16 +381,18 @@ export function matchDetectedFields(
       return { ...field, profileFieldPath: null, value: null };
     }
 
-    if (usedPaths.has(profileFieldPath)) {
-      return { ...field, profileFieldPath, value: null };
-    }
-
     const value = resolveAutofillValue(profile, profileFieldPath, field.labelGuess, field.fieldId);
     if (!value) {
       return { ...field, profileFieldPath, value: null };
     }
 
-    usedPaths.add(profileFieldPath);
+    const previouslyUsed = usedValues.get(profileFieldPath);
+    if (previouslyUsed !== undefined && previouslyUsed === value) {
+      // Same path AND same value -- another field already took this fill.
+      return { ...field, profileFieldPath, value: null };
+    }
+
+    usedValues.set(profileFieldPath, value);
     return { ...field, profileFieldPath, value };
   });
 }

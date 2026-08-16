@@ -22,14 +22,30 @@ function createEmptyMasterProfile() {
 function createEmptyPersonalInfo() {
     return {
         firstName: "",
+        middleName: "",
         lastName: "",
         preferredName: "",
+        namePrefix: "",
+        nameSuffix: "",
+        pronouns: "",
         email: "",
         phone: "",
         linkedinUrl: "",
+        githubUrl: "",
         portfolioUrl: "",
         headline: "",
-        summary: ""
+        summary: "",
+        authorizedToWork: "",
+        requiresSponsorship: "",
+        workAuthCountry: "",
+        visaStatus: "",
+        noticePeriodDays: "",
+        earliestStartDate: "",
+        expectedSalary: "",
+        salaryCurrency: "",
+        salaryPeriod: "",
+        willingToRelocate: "",
+        workModePreference: ""
     };
 }
 function createEmptyAddressInfo() {

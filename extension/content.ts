@@ -263,6 +263,29 @@ function estimateConfidence(field: {
     return 0.96;
   }
 
+  // Work eligibility, availability, and compensation labels are long and
+  // unambiguous when they match at all, so they clear LOW_CONFIDENCE_THRESHOLD.
+  // Without this bucket they would fall to the 0.68 default and every one of
+  // them would be flagged for manual review.
+  if (
+    /\bsponsorship\b/.test(haystack) ||
+    /\bauthorized to work\b/.test(haystack) ||
+    /\bauthorised to work\b/.test(haystack) ||
+    /\bwork authorisation\b/.test(haystack) ||
+    /\bwork authorization\b/.test(haystack) ||
+    /\bvisa status\b/.test(haystack) ||
+    /\bnotice period\b/.test(haystack) ||
+    /\bgithub\b/.test(haystack) ||
+    /\bpronouns?\b/.test(haystack) ||
+    /\bmiddle name\b/.test(haystack) ||
+    /\brelocat/.test(haystack) ||
+    /\b(expected|desired) (salary|compensation|pay|ctc)\b/.test(haystack) ||
+    /\bsalary expectation/.test(haystack) ||
+    /\bearliest (possible )?start\b/.test(haystack)
+  ) {
+    return 0.92;
+  }
+
   if (
     /\bfull name\b/.test(haystack) ||
     /\byour name\b/.test(haystack) ||

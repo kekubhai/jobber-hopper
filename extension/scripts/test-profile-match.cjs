@@ -30,14 +30,30 @@ if (typeof matchDetectedFields !== "function" || typeof resolveAutofillValue !==
 const PROFILE = {
   personal: {
     firstName: "Avery",
+    middleName: "Chidi",
     lastName: "Okafor",
     preferredName: "Avery",
+    namePrefix: "Ms.",
+    nameSuffix: "PhD",
+    pronouns: "they/them",
     email: "avery.okafor@example.com",
     phone: "+1 415 555 0142",
     linkedinUrl: "https://linkedin.com/in/avery",
+    githubUrl: "https://github.com/avery",
     portfolioUrl: "https://avery.dev",
     headline: "Senior Frontend Engineer",
-    summary: "Frontend engineer, 8 years React/TS."
+    summary: "Frontend engineer, 8 years React/TS.",
+    authorizedToWork: "Yes",
+    requiresSponsorship: "No",
+    workAuthCountry: "United States",
+    visaStatus: "Permanent resident",
+    noticePeriodDays: "30",
+    earliestStartDate: "2026-10-01",
+    expectedSalary: "185000",
+    salaryCurrency: "USD",
+    salaryPeriod: "Per year",
+    willingToRelocate: "No",
+    workModePreference: "Remote"
   },
   address: {
     line1: "742 Evergreen",
@@ -184,6 +200,132 @@ runCase(
     email: { value: "avery.okafor@example.com", path: "personal.email" },
     phone: { value: "+1 415 555 0142", path: "personal.phone" },
     city: { value: "San Francisco", path: "address.city" }
+  }
+);
+
+// --- Work eligibility: the rule order in PROFILE_MATCH_RULES is what makes
+// --- these resolve correctly, so each pairing that shares a word is pinned. --
+
+runCase(
+  "Sponsorship wins over visa status and work authorization (Workday phrasing)",
+  [
+    {
+      fieldId: "sponsorship",
+      labelGuess: "Will you now, or in the future, require sponsorship for employment visa status?",
+      type: "select"
+    },
+    {
+      fieldId: "authorized",
+      labelGuess: "Are you legally authorized to work in the United States?",
+      type: "select"
+    }
+  ],
+  {
+    sponsorship: { value: "No", path: "personal.requiresSponsorship" },
+    authorized: { value: "Yes", path: "personal.authorizedToWork" }
+  }
+);
+
+runCase(
+  "Visa status only matches when sponsorship is not in the label",
+  [
+    { fieldId: "visa", labelGuess: "Current visa status", type: "text" },
+    { fieldId: "permit", labelGuess: "Work permit", type: "text" }
+  ],
+  {
+    visa: { value: "Permanent resident", path: "personal.visaStatus" },
+    permit: { value: null, path: "personal.visaStatus" }
+  }
+);
+
+runCase(
+  "Authorization country beats both work authorization and address.country",
+  [
+    { fieldId: "auth_country", labelGuess: "Country of work authorization", type: "select" },
+    { fieldId: "country", labelGuess: "Country", type: "select" }
+  ],
+  {
+    auth_country: { value: "United States", path: "personal.workAuthCountry" },
+    country: { value: "US", path: "address.country" }
+  }
+);
+
+// --- GitHub must not be swallowed by the portfolio rule. --------------------
+
+runCase(
+  "GitHub and website are separate fields",
+  [
+    { fieldId: "github", labelGuess: "GitHub", type: "text" },
+    { fieldId: "website", labelGuess: "Website", type: "text" },
+    { fieldId: "linkedin", labelGuess: "LinkedIn", type: "text" }
+  ],
+  {
+    github: { value: "https://github.com/avery", path: "personal.githubUrl" },
+    website: { value: "https://avery.dev", path: "personal.portfolioUrl" },
+    linkedin: { value: "https://linkedin.com/in/avery", path: "personal.linkedinUrl" }
+  }
+);
+
+// --- Compensation: currency and period precede the amount rule. ------------
+
+runCase(
+  "Salary amount, currency, and period each land in their own field",
+  [
+    { fieldId: "expected", labelGuess: "Expected salary", type: "text" },
+    { fieldId: "currency", labelGuess: "Salary currency", type: "select" },
+    { fieldId: "period", labelGuess: "Pay period", type: "select" }
+  ],
+  {
+    expected: { value: "185000", path: "personal.expectedSalary" },
+    currency: { value: "USD", path: "personal.salaryCurrency" },
+    period: { value: "Per year", path: "personal.salaryPeriod" }
+  }
+);
+
+// --- Availability: a bare "Start date" belongs to education/work history and
+// --- must stay unmatched, or the extension overwrites a school's dates. -----
+
+runCase(
+  "Availability date matches, bare 'Start date' does not",
+  [
+    { fieldId: "earliest", labelGuess: "Earliest possible start date", type: "date" },
+    { fieldId: "school_start", labelGuess: "Start date", type: "date" },
+    { fieldId: "notice", labelGuess: "Notice period (days)", type: "text" }
+  ],
+  {
+    earliest: { value: "2026-10-01", path: "personal.earliestStartDate" },
+    school_start: { value: null, path: null },
+    notice: { value: "30", path: "personal.noticePeriodDays" }
+  }
+);
+
+runCase(
+  "Relocation and work mode",
+  [
+    { fieldId: "relocate", labelGuess: "Are you willing to relocate?", type: "select" },
+    { fieldId: "work_mode", labelGuess: "Work arrangement preference", type: "select" }
+  ],
+  {
+    relocate: { value: "No", path: "personal.willingToRelocate" },
+    work_mode: { value: "Remote", path: "personal.workModePreference" }
+  }
+);
+
+// --- Legal-name extras must not be captured by the first/last/full rules. ---
+
+runCase(
+  "Middle name, prefix, suffix, and pronouns",
+  [
+    { fieldId: "middle_name", labelGuess: "Middle name", type: "text" },
+    { fieldId: "salutation", labelGuess: "Salutation", type: "select" },
+    { fieldId: "suffix", labelGuess: "Suffix", type: "text" },
+    { fieldId: "pronouns", labelGuess: "Pronouns", type: "text" }
+  ],
+  {
+    middle_name: { value: "Chidi", path: "personal.middleName" },
+    salutation: { value: "Ms.", path: "personal.namePrefix" },
+    suffix: { value: "PhD", path: "personal.nameSuffix" },
+    pronouns: { value: "they/them", path: "personal.pronouns" }
   }
 );
 

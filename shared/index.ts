@@ -27,16 +27,48 @@ export type MasterProfile = {
   customQaPairs: CustomQaPair[];
 };
 
+/**
+ * Every value is a string, including the yes/no and enum-ish fields. Autofill
+ * writes the stored text straight into the form control, and `setSelectValue`
+ * in the extension fuzzy-matches it against option text — so "Yes" fills a
+ * `<select>` with a "Yes" option, where a boolean could not.
+ */
 export type PersonalInfo = {
   firstName: string;
+  middleName: string;
   lastName: string;
   preferredName: string;
+  namePrefix: string;
+  nameSuffix: string;
+  pronouns: string;
   email: string;
   phone: string;
   linkedinUrl: string;
+  githubUrl: string;
   portfolioUrl: string;
   headline: string;
   summary: string;
+  /** "Yes" | "No" | "" — "Are you legally authorized to work in X?" */
+  authorizedToWork: string;
+  /** "Yes" | "No" | "" — asked separately from authorization on most ATS forms. */
+  requiresSponsorship: string;
+  /** Country the authorization above applies to, e.g. "United States". */
+  workAuthCountry: string;
+  /** Free text, e.g. "H-1B", "F-1 OPT", "Permanent resident", "EU citizen". */
+  visaStatus: string;
+  /** Digits as text, e.g. "30" — forms ask for a number of days. */
+  noticePeriodDays: string;
+  /** ISO `yyyy-mm-dd`. */
+  earliestStartDate: string;
+  expectedSalary: string;
+  /** ISO 4217 code, e.g. "USD", "INR", "EUR". */
+  salaryCurrency: string;
+  /** "Per year" | "Per month" | "Per hour" | "" */
+  salaryPeriod: string;
+  /** "Yes" | "No" | "" */
+  willingToRelocate: string;
+  /** "Remote" | "Hybrid" | "On-site" | "" */
+  workModePreference: string;
 };
 
 export type AddressInfo = {
@@ -96,14 +128,30 @@ export function createEmptyMasterProfile(): MasterProfile {
 export function createEmptyPersonalInfo(): PersonalInfo {
   return {
     firstName: "",
+    middleName: "",
     lastName: "",
     preferredName: "",
+    namePrefix: "",
+    nameSuffix: "",
+    pronouns: "",
     email: "",
     phone: "",
     linkedinUrl: "",
+    githubUrl: "",
     portfolioUrl: "",
     headline: "",
-    summary: ""
+    summary: "",
+    authorizedToWork: "",
+    requiresSponsorship: "",
+    workAuthCountry: "",
+    visaStatus: "",
+    noticePeriodDays: "",
+    earliestStartDate: "",
+    expectedSalary: "",
+    salaryCurrency: "",
+    salaryPeriod: "",
+    willingToRelocate: "",
+    workModePreference: ""
   };
 }
 

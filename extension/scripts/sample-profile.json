@@ -1,14 +1,30 @@
 {
   "personal": {
     "firstName": "Avery",
+    "middleName": "Chidi",
     "lastName": "Okafor",
     "preferredName": "Avery",
+    "namePrefix": "Ms.",
+    "nameSuffix": "",
+    "pronouns": "they/them",
     "email": "avery.okafor@example.com",
     "phone": "+1 415 555 0142",
     "linkedinUrl": "https://www.linkedin.com/in/avery-okafor",
+    "githubUrl": "https://github.com/avery-okafor",
     "portfolioUrl": "https://avery.dev",
     "headline": "Senior Frontend Engineer",
-    "summary": "Frontend engineer with 8 years building React/TypeScript UIs for B2B SaaS. I care about performance, accessibility, and shipping calmly."
+    "summary": "Frontend engineer with 8 years building React/TypeScript UIs for B2B SaaS. I care about performance, accessibility, and shipping calmly.",
+    "authorizedToWork": "Yes",
+    "requiresSponsorship": "No",
+    "workAuthCountry": "United States",
+    "visaStatus": "Permanent resident",
+    "noticePeriodDays": "30",
+    "earliestStartDate": "2026-10-01",
+    "expectedSalary": "185000",
+    "salaryCurrency": "USD",
+    "salaryPeriod": "Per year",
+    "willingToRelocate": "No",
+    "workModePreference": "Remote"
   },
   "address": {
     "line1": "742 Evergreen Terrace",
