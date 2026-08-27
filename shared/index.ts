@@ -220,6 +220,22 @@ export {
 } from "./profile-normalize";
 export type { JobPlatformId } from "./platforms";
 export { JOB_PLATFORM_LABELS } from "./platforms";
+export type {
+  JobPostApplicationMethod,
+  JobPostExtraction,
+  JobPostHiringManager,
+  JobPostTone,
+  JobPostUrgency,
+  SocialJobPlatform
+} from "./job-post";
+export { emptyJobPostExtraction } from "./job-post";
+export type {
+  JobPostMatchGuidance,
+  JobPostMatchLinks,
+  JobPostMatchRelevantRole,
+  JobPostMatchTone
+} from "./job-post-match";
+export { emptyJobPostMatchGuidance } from "./job-post-match";
 export {
   LOW_CONFIDENCE_THRESHOLD,
   PROFILE_FIELD_PATHS,

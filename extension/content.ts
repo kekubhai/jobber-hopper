@@ -436,6 +436,44 @@ async function analyzeCurrentPage(button: HTMLButtonElement): Promise<void> {
   setButtonState(button, "Thinking...", true);
 
   try {
+    const socialPost =
+      typeof scrapeSocialPostBody === "function" ? await scrapeSocialPostBody() : null;
+
+    if (socialPost) {
+      const extraction = await requestJobPostExtraction(socialPost);
+      let match: JobPostMatchGuidance | null = null;
+
+      if (extraction.isJobPost) {
+        try {
+          match = await requestJobPostMatch(extraction);
+        } catch (matchError) {
+          console.warn(`${CONTENT_LOG_PREFIX} Profile match skipped`, matchError);
+        }
+      }
+
+      if (typeof persistLastJobPost === "function") {
+        await persistLastJobPost(extraction, socialPost.platform, match);
+      } else {
+        window.jobberHopperLastJobPost = extraction;
+        window.jobberHopperLastJobPostMatch = match;
+      }
+      console.info(`${CONTENT_LOG_PREFIX} Social job post extract`, {
+        platform: socialPost.platform,
+        extraction,
+        match
+      });
+
+      if (!extraction.isJobPost) {
+        setButtonState(button, "Not a job", false);
+      } else if (match) {
+        setButtonState(button, `Match ${match.matchScore}%`, false);
+      } else {
+        const label = extraction.role?.trim() || "Job found";
+        setButtonState(button, label.length > 22 ? `${label.slice(0, 20)}…` : label, false);
+      }
+      return;
+    }
+
     if (typeof window.jobberHopperScanFormFields === "function") {
       window.jobberHopperScanFormFields();
     }
@@ -451,6 +489,61 @@ async function analyzeCurrentPage(button: HTMLButtonElement): Promise<void> {
   } finally {
     window.setTimeout(() => setButtonState(button, "AI Assist", false), 1800);
   }
+}
+
+async function requestJobPostExtraction(socialPost: ScrapedSocialPost): Promise<JobPostExtraction> {
+  const settings = await getExtensionSettings();
+  const url = `${settings.apiBaseUrl}/api/job-posts/extract`;
+  console.debug(`${CONTENT_LOG_PREFIX} job post extract URL:`, url);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(await getExtensionAuthHeaders())
+    },
+    body: JSON.stringify({
+      postBody: socialPost.postBody,
+      platform: socialPost.platform
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Job post extract API failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { extraction?: JobPostExtraction };
+  if (!data.extraction) {
+    throw new Error("Job post extract API returned no extraction");
+  }
+
+  return data.extraction;
+}
+
+async function requestJobPostMatch(jobPost: JobPostExtraction): Promise<JobPostMatchGuidance> {
+  const settings = await getExtensionSettings();
+  const url = `${settings.apiBaseUrl}/api/job-posts/match?profileId=${encodeURIComponent(settings.profileId)}`;
+  console.debug(`${CONTENT_LOG_PREFIX} job post match URL:`, url);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(await getExtensionAuthHeaders())
+    },
+    body: JSON.stringify({ jobPost })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Job post match API failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { match?: JobPostMatchGuidance };
+  if (!data.match) {
+    throw new Error("Job post match API returned no match");
+  }
+
+  return data.match;
 }
 
 function extractPageText(): string {

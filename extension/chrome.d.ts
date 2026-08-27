@@ -2,6 +2,9 @@ interface Window {
   jobberHopperScanFormFields?: () => DetectedFormField[];
   jobberHopperAutofillProfile?: () => Promise<AutofillRunResult>;
   jobberHopperPlatform?: () => string;
+  jobberHopperLastJobPost?: JobPostExtraction | null;
+  jobberHopperLastJobPostMatch?: JobPostMatchGuidance | null;
+  jobberHopperScrapeSocialPost?: () => Promise<ScrapedSocialPost | null>;
 }
 
 type MasterProfilePayload = {
@@ -54,6 +57,11 @@ type PopupFillRequest = {
     fieldId: string;
     value: string;
   }>;
+};
+
+type ScrapedSocialPost = {
+  platform: SocialJobPlatform;
+  postBody: string;
 };
 
 declare namespace chrome {

@@ -23,6 +23,7 @@
         "platform-greenhouse.js",
         "platform-workday.js",
         "platform.js",
+        "social-post.js",
         "field-detection.js",
         "profile-match.js",
         "form-mapping.js",
