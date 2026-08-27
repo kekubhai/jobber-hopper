@@ -1,6 +1,7 @@
 "use strict";
 const BUTTON_ID = "ai-browser-agent-assist";
 const AUTOFILL_BUTTON_ID = "jobber-hopper-autofill";
+const SCAN_POST_BUTTON_ID = "jobber-hopper-scan-post";
 const MAX_TEXT_LENGTH = 3000;
 const CONTENT_LOG_PREFIX = "[Jobber Hopper]";
 const FUNNEL_SESSION_ID = typeof crypto.randomUUID === "function"
@@ -32,7 +33,85 @@ function injectAutofillButton() {
     });
     document.body.appendChild(button);
 }
-function floatingButtonStyle(bottomOffset) {
+function injectScanJobPostButton() {
+    const onSocial = typeof detectSocialJobPlatform === "function" && detectSocialJobPlatform() !== null;
+    const existing = document.getElementById(SCAN_POST_BUTTON_ID);
+    if (!onSocial) {
+        existing?.remove();
+        return;
+    }
+    if (existing || !document.body)
+        return;
+    const button = document.createElement("button");
+    button.id = SCAN_POST_BUTTON_ID;
+    button.type = "button";
+    button.textContent = "Scan job post";
+    button.title = "Extract this LinkedIn/X post and draft an application email";
+    button.style.cssText = floatingButtonStyle("bottom:108px", "#0f766e");
+    button.addEventListener("click", () => {
+        void runSocialJobPostPipeline(button);
+    });
+    document.body.appendChild(button);
+}
+function injectAllFloatingButtons() {
+    if (!document.body)
+        return;
+    injectAssistButton();
+    injectAutofillButton();
+    injectScanJobPostButton();
+}
+function isExtensionContextValid() {
+    try {
+        return typeof chrome !== "undefined" && Boolean(chrome.runtime?.id);
+    }
+    catch {
+        return false;
+    }
+}
+function startFloatingButtonWatcher() {
+    injectAllFloatingButtons();
+    let scheduled = 0;
+    let observer = null;
+    const stop = () => {
+        if (scheduled) {
+            window.clearTimeout(scheduled);
+            scheduled = 0;
+        }
+        observer?.disconnect();
+        observer = null;
+    };
+    const schedule = () => {
+        if (!isExtensionContextValid()) {
+            stop();
+            return;
+        }
+        if (scheduled)
+            return;
+        scheduled = window.setTimeout(() => {
+            scheduled = 0;
+            if (!isExtensionContextValid()) {
+                stop();
+                return;
+            }
+            injectAllFloatingButtons();
+        }, 400);
+    };
+    observer = new MutationObserver(schedule);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    window.addEventListener("popstate", schedule);
+    window.addEventListener("hashchange", schedule);
+    const originalPushState = history.pushState.bind(history);
+    const originalReplaceState = history.replaceState.bind(history);
+    history.pushState = (...args) => {
+        originalPushState(...args);
+        schedule();
+    };
+    history.replaceState = (...args) => {
+        originalReplaceState(...args);
+        schedule();
+    };
+}
+function floatingButtonStyle(bottomOffset, background = "#111827") {
     return [
         "position:fixed",
         "right:20px",
@@ -41,7 +120,7 @@ function floatingButtonStyle(bottomOffset) {
         "padding:10px 14px",
         "border:0",
         "border-radius:8px",
-        "background:#111827",
+        `background:${background}`,
         "color:#ffffff",
         "font:600 14px system-ui,-apple-system,Segoe UI,sans-serif",
         "box-shadow:0 8px 24px rgba(0,0,0,0.2)",
@@ -329,53 +408,7 @@ async function analyzeCurrentPage(button) {
     try {
         const socialPost = typeof scrapeSocialPostBody === "function" ? await scrapeSocialPostBody() : null;
         if (socialPost) {
-            const extraction = await requestJobPostExtraction(socialPost);
-            let match = null;
-            let email = null;
-            if (extraction.isJobPost) {
-                try {
-                    match = await requestJobPostMatch(extraction);
-                }
-                catch (matchError) {
-                    console.warn(`${CONTENT_LOG_PREFIX} Profile match skipped`, matchError);
-                }
-                if (match) {
-                    try {
-                        email = await requestJobPostEmail(extraction, match, socialPost.platform);
-                    }
-                    catch (emailError) {
-                        console.warn(`${CONTENT_LOG_PREFIX} Email draft skipped`, emailError);
-                    }
-                }
-            }
-            if (typeof persistLastJobPost === "function") {
-                await persistLastJobPost(extraction, socialPost.platform, match, email);
-            }
-            else {
-                window.jobberHopperLastJobPost = extraction;
-                window.jobberHopperLastJobPostMatch = match;
-                window.jobberHopperLastJobPostEmail = email;
-            }
-            console.info(`${CONTENT_LOG_PREFIX} Social job post pipeline`, {
-                platform: socialPost.platform,
-                extraction,
-                match,
-                email
-            });
-            if (!extraction.isJobPost) {
-                setButtonState(button, "Not a job", false);
-            }
-            else if (email) {
-                setButtonState(button, "Email ready", false);
-                showEmailDraftOverlay(email);
-            }
-            else if (match) {
-                setButtonState(button, `Match ${match.matchScore}%`, false);
-            }
-            else {
-                const label = extraction.role?.trim() || "Job found";
-                setButtonState(button, label.length > 22 ? `${label.slice(0, 20)}…` : label, false);
-            }
+            await runSocialJobPostPipeline(button, socialPost);
             return;
         }
         if (typeof window.jobberHopperScanFormFields === "function") {
@@ -393,6 +426,74 @@ async function analyzeCurrentPage(button) {
     }
     finally {
         window.setTimeout(() => setButtonState(button, "AI Assist", false), 1800);
+    }
+}
+async function runSocialJobPostPipeline(button, scraped) {
+    const defaultLabel = button.id === SCAN_POST_BUTTON_ID ? "Scan job post" : "AI Assist";
+    setButtonState(button, "Scanning...", true);
+    try {
+        const socialPost = scraped ?? (typeof scrapeSocialPostBody === "function" ? await scrapeSocialPostBody() : null);
+        if (!socialPost) {
+            setButtonState(button, "No post found", false);
+            console.warn(`${CONTENT_LOG_PREFIX} No LinkedIn/X post text found on this page`);
+            return;
+        }
+        const extraction = await requestJobPostExtraction(socialPost);
+        let match = null;
+        let email = null;
+        if (extraction.isJobPost) {
+            setButtonState(button, "Matching...", true);
+            try {
+                match = await requestJobPostMatch(extraction);
+            }
+            catch (matchError) {
+                console.warn(`${CONTENT_LOG_PREFIX} Profile match skipped`, matchError);
+            }
+            if (match) {
+                setButtonState(button, "Writing...", true);
+                try {
+                    email = await requestJobPostEmail(extraction, match, socialPost.platform);
+                }
+                catch (emailError) {
+                    console.warn(`${CONTENT_LOG_PREFIX} Email draft skipped`, emailError);
+                }
+            }
+        }
+        if (typeof persistLastJobPost === "function") {
+            await persistLastJobPost(extraction, socialPost.platform, match, email);
+        }
+        else {
+            window.jobberHopperLastJobPost = extraction;
+            window.jobberHopperLastJobPostMatch = match;
+            window.jobberHopperLastJobPostEmail = email;
+        }
+        console.info(`${CONTENT_LOG_PREFIX} Social job post pipeline`, {
+            platform: socialPost.platform,
+            extraction,
+            match,
+            email
+        });
+        if (!extraction.isJobPost) {
+            setButtonState(button, "Not a job", false);
+        }
+        else if (email) {
+            setButtonState(button, "Email ready", false);
+            showEmailDraftOverlay(email);
+        }
+        else if (match) {
+            setButtonState(button, `Match ${match.matchScore}%`, false);
+        }
+        else {
+            const label = extraction.role?.trim() || "Job found";
+            setButtonState(button, label.length > 22 ? `${label.slice(0, 20)}…` : label, false);
+        }
+    }
+    catch (error) {
+        console.error(`${CONTENT_LOG_PREFIX} Social pipeline failed`, error);
+        setButtonState(button, "Error", false);
+    }
+    finally {
+        window.setTimeout(() => setButtonState(button, defaultLabel, false), 2200);
     }
 }
 async function requestJobPostExtraction(socialPost) {
@@ -469,7 +570,7 @@ function showEmailDraftOverlay(email) {
     panel.style.cssText = [
         "position:fixed",
         "right:20px",
-        "bottom:108px",
+        "top:20px",
         "z-index:2147483647",
         "width:min(420px,calc(100vw - 40px))",
         "max-height:min(520px,calc(100vh - 140px))",
@@ -678,6 +779,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 document.addEventListener("submit", () => {
     void trackFunnelEvent("application_submitted", {});
 }, true);
-injectAssistButton();
-injectAutofillButton();
+injectAllFloatingButtons();
+startFloatingButtonWatcher();
 startFormFieldDetection();

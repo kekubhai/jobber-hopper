@@ -100,6 +100,15 @@ async function enrichMatchesWithLlmWhenNeeded(
   ruleMatches: EnrichedFormMatch[],
   settings: ExtensionSettings
 ): Promise<EnrichedFormMatch[]> {
+  const host = window.location.hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host.endsWith("jobber-hopper.vercel.app") ||
+    host.endsWith("jobber-hopper.com")
+  ) {
+    return ruleMatches;
+  }
+
   const needsLlm = ruleMatches.some((match) => {
     const confidence = estimateConfidence(match);
     return confidence < LOW_CONFIDENCE_THRESHOLD || !match.profileFieldPath || !match.value;
