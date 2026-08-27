@@ -331,6 +331,7 @@ async function analyzeCurrentPage(button) {
         if (socialPost) {
             const extraction = await requestJobPostExtraction(socialPost);
             let match = null;
+            let email = null;
             if (extraction.isJobPost) {
                 try {
                     match = await requestJobPostMatch(extraction);
@@ -338,21 +339,35 @@ async function analyzeCurrentPage(button) {
                 catch (matchError) {
                     console.warn(`${CONTENT_LOG_PREFIX} Profile match skipped`, matchError);
                 }
+                if (match) {
+                    try {
+                        email = await requestJobPostEmail(extraction, match, socialPost.platform);
+                    }
+                    catch (emailError) {
+                        console.warn(`${CONTENT_LOG_PREFIX} Email draft skipped`, emailError);
+                    }
+                }
             }
             if (typeof persistLastJobPost === "function") {
-                await persistLastJobPost(extraction, socialPost.platform, match);
+                await persistLastJobPost(extraction, socialPost.platform, match, email);
             }
             else {
                 window.jobberHopperLastJobPost = extraction;
                 window.jobberHopperLastJobPostMatch = match;
+                window.jobberHopperLastJobPostEmail = email;
             }
-            console.info(`${CONTENT_LOG_PREFIX} Social job post extract`, {
+            console.info(`${CONTENT_LOG_PREFIX} Social job post pipeline`, {
                 platform: socialPost.platform,
                 extraction,
-                match
+                match,
+                email
             });
             if (!extraction.isJobPost) {
                 setButtonState(button, "Not a job", false);
+            }
+            else if (email) {
+                setButtonState(button, "Email ready", false);
+                showEmailDraftOverlay(email);
             }
             else if (match) {
                 setButtonState(button, `Match ${match.matchScore}%`, false);
@@ -424,6 +439,104 @@ async function requestJobPostMatch(jobPost) {
         throw new Error("Job post match API returned no match");
     }
     return data.match;
+}
+async function requestJobPostEmail(jobPost, match, platform) {
+    const settings = await getExtensionSettings();
+    const url = `${settings.apiBaseUrl}/api/job-posts/email?profileId=${encodeURIComponent(settings.profileId)}`;
+    console.debug(`${CONTENT_LOG_PREFIX} job post email URL:`, url);
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(await getExtensionAuthHeaders())
+        },
+        body: JSON.stringify({ jobPost, match, platform })
+    });
+    if (!response.ok) {
+        throw new Error(`Job post email API failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.email) {
+        throw new Error("Job post email API returned no email");
+    }
+    return data.email;
+}
+function showEmailDraftOverlay(email) {
+    const existing = document.getElementById("jobber-hopper-email-draft");
+    existing?.remove();
+    const panel = document.createElement("div");
+    panel.id = "jobber-hopper-email-draft";
+    panel.style.cssText = [
+        "position:fixed",
+        "right:20px",
+        "bottom:108px",
+        "z-index:2147483647",
+        "width:min(420px,calc(100vw - 40px))",
+        "max-height:min(520px,calc(100vh - 140px))",
+        "overflow:auto",
+        "padding:14px",
+        "border-radius:12px",
+        "background:#0f172a",
+        "color:#f8fafc",
+        "font:13px/1.45 system-ui,-apple-system,Segoe UI,sans-serif",
+        "box-shadow:0 16px 40px rgba(0,0,0,0.35)"
+    ].join(";");
+    const title = document.createElement("div");
+    title.textContent = "Application email";
+    title.style.cssText = "font-weight:700;font-size:14px;margin-bottom:8px";
+    const subject = document.createElement("div");
+    subject.textContent = `Subject: ${email.subject}`;
+    subject.style.cssText = "margin-bottom:8px;opacity:0.9";
+    const body = document.createElement("pre");
+    body.textContent = email.body;
+    body.style.cssText =
+        "white-space:pre-wrap;margin:0 0 12px;font:inherit;background:#1e293b;padding:10px;border-radius:8px";
+    const actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.textContent = "Copy";
+    copyBtn.style.cssText = overlayButtonStyle();
+    copyBtn.addEventListener("click", () => {
+        void navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`);
+        copyBtn.textContent = "Copied";
+        window.setTimeout(() => {
+            copyBtn.textContent = "Copy";
+        }, 1200);
+    });
+    const mailBtn = document.createElement("button");
+    mailBtn.type = "button";
+    mailBtn.textContent = email.toEmail ? "Open mail" : "No email";
+    mailBtn.disabled = !email.toEmail;
+    mailBtn.style.cssText = overlayButtonStyle();
+    mailBtn.addEventListener("click", () => {
+        if (!email.toEmail)
+            return;
+        const params = new URLSearchParams({
+            subject: email.subject,
+            body: email.body
+        });
+        window.location.href = `mailto:${encodeURIComponent(email.toEmail)}?${params.toString()}`;
+    });
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.textContent = "Close";
+    closeBtn.style.cssText = overlayButtonStyle("#334155");
+    closeBtn.addEventListener("click", () => panel.remove());
+    actions.append(copyBtn, mailBtn, closeBtn);
+    panel.append(title, subject, body, actions);
+    document.body.appendChild(panel);
+}
+function overlayButtonStyle(background = "#2563eb") {
+    return [
+        "border:0",
+        "border-radius:8px",
+        `background:${background}`,
+        "color:#fff",
+        "padding:8px 12px",
+        "font:600 12px system-ui,-apple-system,Segoe UI,sans-serif",
+        "cursor:pointer"
+    ].join(";");
 }
 function extractPageText() {
     const formText = Array.from(document.querySelectorAll("input, textarea, select, label, button"))

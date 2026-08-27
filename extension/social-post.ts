@@ -132,10 +132,12 @@ function normalizePostText(value: string): string {
 async function persistLastJobPost(
   extraction: JobPostExtraction,
   platform: SocialJobPlatform,
-  match: JobPostMatchGuidance | null = null
+  match: JobPostMatchGuidance | null = null,
+  email: JobPostEmailDraft | null = null
 ): Promise<void> {
   window.jobberHopperLastJobPost = extraction;
   window.jobberHopperLastJobPostMatch = match;
+  window.jobberHopperLastJobPostEmail = email;
   try {
     await chrome.storage.local.set({
       [LAST_JOB_POST_STORAGE_KEY]: {
@@ -143,7 +145,8 @@ async function persistLastJobPost(
         pageUrl: window.location.href,
         extractedAt: Date.now(),
         extraction,
-        match
+        match,
+        email
       }
     });
   } catch {

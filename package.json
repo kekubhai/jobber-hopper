@@ -11,6 +11,7 @@
   "scripts": {
     "build:extension": "pnpm --dir extension build",
     "build:web": "pnpm --dir web build",
+    "check": "node scripts/check.cjs",
     "dev:web": "pnpm --dir web dev",
     "watch:extension": "pnpm --dir extension watch"
   },

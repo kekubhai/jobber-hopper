@@ -112,9 +112,10 @@ function expandTruncatedSocialPost(root) {
 function normalizePostText(value) {
     return value.replace(/\s+/g, " ").trim();
 }
-async function persistLastJobPost(extraction, platform, match = null) {
+async function persistLastJobPost(extraction, platform, match = null, email = null) {
     window.jobberHopperLastJobPost = extraction;
     window.jobberHopperLastJobPostMatch = match;
+    window.jobberHopperLastJobPostEmail = email;
     try {
         await chrome.storage.local.set({
             [LAST_JOB_POST_STORAGE_KEY]: {
@@ -122,7 +123,8 @@ async function persistLastJobPost(extraction, platform, match = null) {
                 pageUrl: window.location.href,
                 extractedAt: Date.now(),
                 extraction,
-                match
+                match,
+                email
             }
         });
     }

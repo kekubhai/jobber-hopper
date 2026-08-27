@@ -8,4 +8,6 @@ type JobPostExtraction = import("@jobber-hopper/shared").JobPostExtraction;
 
 type JobPostMatchGuidance = import("@jobber-hopper/shared").JobPostMatchGuidance;
 
+type JobPostEmailDraft = import("@jobber-hopper/shared").JobPostEmailDraft;
+
 type SocialJobPlatform = import("@jobber-hopper/shared").SocialJobPlatform;

@@ -4,6 +4,7 @@ interface Window {
   jobberHopperPlatform?: () => string;
   jobberHopperLastJobPost?: JobPostExtraction | null;
   jobberHopperLastJobPostMatch?: JobPostMatchGuidance | null;
+  jobberHopperLastJobPostEmail?: JobPostEmailDraft | null;
   jobberHopperScrapeSocialPost?: () => Promise<ScrapedSocialPost | null>;
 }
 

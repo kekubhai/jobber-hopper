@@ -236,6 +236,8 @@ export type {
   JobPostMatchTone
 } from "./job-post-match";
 export { emptyJobPostMatchGuidance } from "./job-post-match";
+export type { JobPostEmailDraft } from "./job-post-email";
+export { countEmailWords, emptyJobPostEmailDraft } from "./job-post-email";
 export {
   LOW_CONFIDENCE_THRESHOLD,
   PROFILE_FIELD_PATHS,
