@@ -68,8 +68,25 @@ export async function POST(request: Request) {
 
   const platform = typeof body.platform === "string" ? body.platform.trim() : null;
 
+  let supabase;
   try {
-    const supabase = getSupabaseAdminClient();
+    supabase = getSupabaseAdminClient();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Supabase admin env is not configured";
+    return jsonWithCors({ error: message }, { status: 503 });
+  }
+
+  if (!process.env.OPENROUTER_API_KEY?.trim()) {
+    return jsonWithCors(
+      {
+        error: "OPENROUTER_API_KEY is not configured",
+        hint: "Add OPENROUTER_API_KEY in Vercel → Settings → Environment Variables, then redeploy."
+      },
+      { status: 503 }
+    );
+  }
+
+  try {
     const { data: cached, error: cacheError } = await supabase
       .from("form_field_mapping_cache")
       .select("mappings")
@@ -78,10 +95,9 @@ export async function POST(request: Request) {
       .maybeSingle<CacheRow>();
 
     if (cacheError) {
-      throw cacheError;
-    }
-
-    if (cached?.mappings) {
+      // Missing table / schema issues — still try LLM so autofill isn't blocked.
+      console.warn("Form mapping cache read failed", cacheError);
+    } else if (cached?.mappings) {
       return jsonWithCors({
         domain,
         formHash,
@@ -90,7 +106,24 @@ export async function POST(request: Request) {
       });
     }
 
-    const mappings = await inferFormFieldMappingsWithLlm(fields);
+    let mappings: FormFieldSchemaMapping[];
+    try {
+      mappings = await inferFormFieldMappingsWithLlm(fields);
+    } catch (llmError) {
+      console.error("Form mapping LLM failed", llmError);
+      const message = llmError instanceof Error ? llmError.message : "OpenRouter mapping failed";
+      const isConfig =
+        message.includes("OPENROUTER_API_KEY") ||
+        message.includes("OpenRouter request failed with status 401") ||
+        message.includes("OpenRouter request failed with status 402");
+      return jsonWithCors(
+        {
+          error: isConfig ? message : "Failed to resolve form mapping",
+          detail: message.slice(0, 300)
+        },
+        { status: isConfig ? 503 : 502 }
+      );
+    }
 
     const { error: insertError } = await supabase.from("form_field_mapping_cache").upsert(
       {
@@ -103,7 +136,8 @@ export async function POST(request: Request) {
     );
 
     if (insertError) {
-      throw insertError;
+      // Return successful mappings even if cache write fails (e.g. table missing).
+      console.warn("Form mapping cache write failed", insertError);
     }
 
     return jsonWithCors({
@@ -114,7 +148,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Form mapping failed", error);
-    return jsonWithCors({ error: "Failed to resolve form mapping" }, { status: 502 });
+    const message = error instanceof Error ? error.message : "Failed to resolve form mapping";
+    const isConfig =
+      message.includes("Supabase admin env") ||
+      message.includes("OPENROUTER_API_KEY") ||
+      message.includes("CLERK_SECRET_KEY");
+    return jsonWithCors(
+      { error: isConfig ? message : "Failed to resolve form mapping", detail: message.slice(0, 300) },
+      { status: isConfig ? 503 : 502 }
+    );
   }
 }
 
