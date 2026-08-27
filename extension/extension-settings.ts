@@ -3,7 +3,7 @@ type ExtensionSettings = {
   profileId: string;
 };
 
-const DEFAULT_API_BASE_URL = "http://localhost:3000";
+const DEFAULT_API_BASE_URL = "https://jobber-hopper.vercel.app";
 const DEFAULT_PROFILE_ID = "local-dev-user";
 
 /**
@@ -14,6 +14,7 @@ const DEFAULT_PROFILE_ID = "local-dev-user";
  */
 const CLERK_SESSION_COOKIE_ORIGINS = [
   "http://localhost:3000",
+  "https://jobber-hopper.vercel.app",
   "https://app.jobber-hopper.com"
 ] as const;
 

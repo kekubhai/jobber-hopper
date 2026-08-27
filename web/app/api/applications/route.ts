@@ -59,7 +59,9 @@ export async function GET(request: Request) {
     return jsonWithCors({ applications: data ?? [] });
   } catch (error) {
     console.error("Application tracker GET failed", error);
-    return jsonWithCors({ error: "Failed to load applications" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to load applications";
+    const isConfig = message.includes("Supabase admin env");
+    return jsonWithCors({ error: isConfig ? message : "Failed to load applications" }, { status: isConfig ? 503 : 500 });
   }
 }
 
@@ -110,7 +112,9 @@ export async function POST(request: Request) {
     return jsonWithCors({ application: data, tracked: true }, { status: 201 });
   } catch (error) {
     console.error("Application tracker POST failed", error);
-    return jsonWithCors({ error: "Failed to track application" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to track application";
+    const isConfig = message.includes("Supabase admin env");
+    return jsonWithCors({ error: isConfig ? message : "Failed to track application" }, { status: isConfig ? 503 : 500 });
   }
 }
 
@@ -150,7 +154,9 @@ export async function PATCH(request: Request) {
     return jsonWithCors({ application: data });
   } catch (error) {
     console.error("Application tracker PATCH failed", error);
-    return jsonWithCors({ error: "Failed to update application" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to update application";
+    const isConfig = message.includes("Supabase admin env");
+    return jsonWithCors({ error: isConfig ? message : "Failed to update application" }, { status: isConfig ? 503 : 500 });
   }
 }
 

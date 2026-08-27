@@ -83,7 +83,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Profile GET failed", error);
-    return jsonWithCors({ error: "Failed to load profile" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to load profile";
+    const isConfig = message.includes("Supabase admin env");
+    return jsonWithCors({ error: isConfig ? message : "Failed to load profile" }, { status: isConfig ? 503 : 500 });
   }
 }
 
@@ -133,7 +135,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Profile POST failed", error);
     const message = error instanceof Error ? error.message : "Failed to save profile";
-    const isConfig = message.includes("Supabase admin env");
+    const isConfig = message.includes("Supabase admin env") || message.includes("CLERK_SECRET_KEY");
     return NextResponse.json(
       { error: isConfig ? message : "Failed to save profile" },
       { status: isConfig ? 503 : 500 }

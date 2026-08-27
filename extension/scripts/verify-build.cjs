@@ -11,6 +11,7 @@ const required = [
   "platform-greenhouse.js",
   "platform-workday.js",
   "platform.js",
+  "social-post.js",
   "profile-match.js",
   "popup.js"
 ];

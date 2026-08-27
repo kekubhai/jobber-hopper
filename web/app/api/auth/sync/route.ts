@@ -18,6 +18,8 @@ export async function POST(request: Request) {
     return jsonWithCors({ ok: true, ...result });
   } catch (error) {
     console.error("Clerk user sync failed", error);
-    return jsonWithCors({ error: "Failed to sync user to Supabase" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to sync user to Supabase";
+    const isConfig = message.includes("Supabase admin env") || message.includes("CLERK_SECRET_KEY");
+    return jsonWithCors({ error: isConfig ? message : "Failed to sync user to Supabase" }, { status: isConfig ? 503 : 500 });
   }
 }

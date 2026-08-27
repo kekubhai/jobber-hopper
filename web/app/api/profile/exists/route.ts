@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isMasterProfileReady, type MasterProfile } from "@jobber-hopper/shared";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { getProfileIdFromUrl } from "@/lib/request-auth";
 
 type MasterProfileRow = {
   profile_id: string;
@@ -14,7 +15,7 @@ type MasterProfileRow = {
 const defaultProfileId = process.env.DEFAULT_PROFILE_ID ?? "local-dev-user";
 
 export async function GET(request: Request) {
-  const profileId = getProfileIdFromUrl(request.url);
+  const profileId = getProfileIdFromUrl(request.url, defaultProfileId);
 
   try {
     const supabase = getSupabaseAdminClient();
@@ -47,16 +48,8 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Profile exists check failed", error);
-    return NextResponse.json({ error: "Failed to check profile" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to check profile";
+    const isConfig = message.includes("Supabase admin env");
+    return NextResponse.json({ error: isConfig ? message : "Failed to check profile" }, { status: isConfig ? 503 : 500 });
   }
-}
-
-function getProfileIdFromUrl(url: string): string {
-  const parsed = new URL(url);
-  const candidate = parsed.searchParams.get("profileId");
-  if (candidate && candidate.trim().length > 0) {
-    return candidate.trim();
-  }
-
-  return defaultProfileId;
 }

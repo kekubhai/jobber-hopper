@@ -3,7 +3,7 @@ const SESSION_CACHE_KEY = "jobber-hopper:session-cache";
 const SESSION_CACHE_TTL_MS = 5 * 60 * 1000;
 chrome.runtime.onInstalled.addListener(() => {
     void chrome.storage.local.set({
-        apiBaseUrl: "http://localhost:3000",
+        apiBaseUrl: "https://jobber-hopper.vercel.app",
         profileId: "local-dev-user"
     });
 });
@@ -29,7 +29,7 @@ function handleGetSettings(sendResponse) {
         sendResponse({
             apiBaseUrl: typeof stored.apiBaseUrl === "string" && stored.apiBaseUrl.trim().length > 0
                 ? stored.apiBaseUrl.trim()
-                : "http://localhost:3000",
+                : "https://jobber-hopper.vercel.app",
             profileId: typeof stored.profileId === "string" && stored.profileId.trim().length > 0
                 ? stored.profileId.trim()
                 : "local-dev-user"
@@ -64,7 +64,7 @@ async function handleGetSession(sendResponse) {
         const settings = await chrome.storage.local.get(["apiBaseUrl"]);
         const apiBaseUrl = typeof settings.apiBaseUrl === "string" && settings.apiBaseUrl.trim().length > 0
             ? settings.apiBaseUrl.trim()
-            : "http://localhost:3000";
+            : "https://jobber-hopper.vercel.app";
         const response = await fetch(`${apiBaseUrl}/api/extension/session`, {
             method: "GET",
             headers: { Authorization: `Bearer ${session.token}` }
