@@ -18,7 +18,7 @@ export const JOB_POST_EXTRACT_SYSTEM_PROMPT = [
   "This prompt is used in the first step of that pipeline — detecting whether the post is a job post",
   "and extracting structured data from it.",
   "The post body text has already been scraped from the DOM by our extension using these selectors:",
-  '- LinkedIn: `.feed-shared-text` or `.feed-shared-update-v2__description`',
+  '- LinkedIn: post container `[data-view-name="feed-full-update"]`, `[data-urn^="urn:li:activity:"]`, or `.feed-shared-update-v2`; text from `[data-testid="expandable-text-box"]`, `.update-components-text`, or legacy `.feed-shared-text`',
   '- Twitter/X: `[data-testid="tweetText"]`',
   "We have also detected which platform the user is on from the URL.",
   "Now you will receive the raw post text and platform name. Your job is to analyze it and return",

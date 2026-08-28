@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Jobber Hopper",
   "description": "Review and fill job applications from your master profile. Rule-based matching with optional AI field mapping; you approve every fill.",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "permissions": ["activeTab", "storage", "cookies"],
   "host_permissions": [
     "http://localhost:3000/*",

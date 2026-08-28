@@ -1,6 +1,19 @@
 const LAST_JOB_POST_STORAGE_KEY = "jobber-hopper:last-job-post";
 const SOCIAL_POST_MAX_LENGTH = 8000;
+const LINKEDIN_POST_CONTAINER_SELECTORS = [
+    '[data-view-name="feed-full-update"]',
+    "div.feed-shared-update-v2",
+    'div[data-urn^="urn:li:activity:"]',
+    'div[data-id^="urn:li:activity:"]',
+    'div[data-urn^="urn:li:aggregatedShare:"]'
+];
 const LINKEDIN_TEXT_SELECTORS = [
+    '[data-testid="expandable-text-box"]',
+    '[componentkey^="feed-commentary"]',
+    ".update-components-text",
+    ".feed-shared-update-v2__commentary",
+    ".feed-shared-inline-show-more-text",
+    ".feed-shared-text-view",
     ".feed-shared-text",
     ".feed-shared-update-v2__description"
 ];
@@ -31,10 +44,12 @@ function scrapeSocialPostBody() {
     }
     const expanded = expandTruncatedSocialPost(root);
     const wait = expanded
-        ? new Promise((resolve) => window.setTimeout(resolve, 150))
+        ? new Promise((resolve) => window.setTimeout(resolve, 200))
         : Promise.resolve();
     return wait.then(() => {
-        const text = normalizePostText(root.textContent ?? "");
+        const text = platform === "linkedin"
+            ? extractLinkedInPostText(root)
+            : normalizePostText(root.textContent ?? "");
         if (text.length < 12) {
             return null;
         }
@@ -45,8 +60,10 @@ function scrapeSocialPostBody() {
     });
 }
 function pickSocialPostRoot(platform) {
-    const selectors = platform === "linkedin" ? LINKEDIN_TEXT_SELECTORS : TWITTER_TEXT_SELECTORS;
-    const nodes = selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+    if (platform === "linkedin") {
+        return pickLinkedInPostRoot();
+    }
+    const nodes = TWITTER_TEXT_SELECTORS.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
     if (nodes.length === 0) {
         return null;
     }
@@ -54,6 +71,94 @@ function pickSocialPostRoot(platform) {
     if (singlePost) {
         return nodes[0] ?? null;
     }
+    return pickBestVisibleElement(nodes);
+}
+function pickLinkedInPostRoot() {
+    const containers = findLinkedInPostContainers();
+    if (containers.length > 0) {
+        const bestContainer = pickBestVisibleElement(containers);
+        if (bestContainer) {
+            const textEl = findLinkedInTextElement(bestContainer);
+            if (textEl) {
+                return textEl;
+            }
+            return bestContainer;
+        }
+    }
+    const legacyNodes = LINKEDIN_TEXT_SELECTORS.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+    if (legacyNodes.length > 0) {
+        return pickBestVisibleElement(legacyNodes);
+    }
+    return null;
+}
+function findLinkedInPostContainers() {
+    const seen = new Set();
+    const containers = [];
+    for (const selector of LINKEDIN_POST_CONTAINER_SELECTORS) {
+        for (const el of document.querySelectorAll(selector)) {
+            if (seen.has(el)) {
+                continue;
+            }
+            if (!isLikelyLinkedInPostContainer(el)) {
+                continue;
+            }
+            seen.add(el);
+            containers.push(el);
+        }
+    }
+    return dedupeNestedContainers(containers);
+}
+function dedupeNestedContainers(containers) {
+    return containers.filter((candidate) => !containers.some((other) => other !== candidate && other.contains(candidate)));
+}
+function isLikelyLinkedInPostContainer(el) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width < 120 || rect.height < 40) {
+        return false;
+    }
+    const haystack = (el.className?.toString() ?? "").toLowerCase();
+    if (haystack.includes("comment") && !haystack.includes("commentary")) {
+        return false;
+    }
+    const text = extractLinkedInPostText(el);
+    return text.length >= 8;
+}
+function findLinkedInTextElement(container) {
+    for (const selector of LINKEDIN_TEXT_SELECTORS) {
+        const match = container.querySelector(selector);
+        if (match && normalizePostText(match.textContent ?? "").length >= 8) {
+            return match;
+        }
+    }
+    return longestLtrTextElement(container);
+}
+function extractLinkedInPostText(container) {
+    const textEl = findLinkedInTextElement(container);
+    if (textEl) {
+        return normalizePostText(collectVisibleText(textEl));
+    }
+    return normalizePostText(collectVisibleText(container));
+}
+function longestLtrTextElement(container) {
+    let best = null;
+    let bestLen = 0;
+    for (const candidate of container.querySelectorAll('[dir="ltr"], span[lang]')) {
+        const len = normalizePostText(candidate.textContent ?? "").length;
+        if (len > bestLen) {
+            best = candidate;
+            bestLen = len;
+        }
+    }
+    return bestLen >= 12 ? best : null;
+}
+function collectVisibleText(element) {
+    const clone = element.cloneNode(true);
+    for (const hidden of clone.querySelectorAll('[aria-hidden="true"], .visually-hidden, .screen-reader-text')) {
+        hidden.remove();
+    }
+    return clone.textContent ?? "";
+}
+function pickBestVisibleElement(nodes) {
     let best = null;
     let bestScore = Number.NEGATIVE_INFINITY;
     for (const node of nodes) {
@@ -97,10 +202,14 @@ function socialPostVisibilityScore(element) {
 }
 function expandTruncatedSocialPost(root) {
     let clicked = false;
-    const controls = root.querySelectorAll("button, [role='button'], .see-more");
+    const scope = root.closest('[data-view-name="feed-full-update"], div.feed-shared-update-v2, [data-urn^="urn:li:activity:"]') ?? root;
+    const controls = scope.querySelectorAll('button, [role="button"], .see-more, [data-testid="expandable-text-button"]');
     for (const control of controls) {
         const label = (control.textContent ?? "").replace(/\s+/g, " ").trim();
-        if (/^(see more|show more|…more|\.\.\.more)$/i.test(label) || /see more|show more/i.test(label)) {
+        const aria = (control.getAttribute("aria-label") ?? "").replace(/\s+/g, " ").trim();
+        const combined = `${label} ${aria}`.trim();
+        if (/^(see more|show more|…more|\.\.\.more|more)$/i.test(label) ||
+            /see more|show more|expand/i.test(combined)) {
             if (control instanceof HTMLElement) {
                 control.click();
                 clicked = true;
