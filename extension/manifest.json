@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Jobber Hopper",
   "description": "Review and fill job applications from your master profile. Rule-based matching with optional AI field mapping; you approve every fill.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "permissions": ["activeTab", "storage", "cookies"],
   "host_permissions": [
     "http://localhost:3000/*",
@@ -19,6 +19,11 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "exclude_matches": [
+        "http://localhost:3000/*",
+        "https://jobber-hopper.vercel.app/*",
+        "https://app.jobber-hopper.com/*"
+      ],
       "js": [
         "extension-settings.js",
         "platform-greenhouse.js",

@@ -242,3 +242,20 @@ async function persistLastJobPost(extraction, platform, match = null, email = nu
     }
 }
 window.jobberHopperScrapeSocialPost = () => scrapeSocialPostBody();
+window.jobberHopperDebugSocialScrape = () => {
+    const platform = detectSocialJobPlatform();
+    const containers = platform === "linkedin" ? findLinkedInPostContainers() : [];
+    const root = platform ? pickSocialPostRoot(platform) : null;
+    const report = {
+        platform,
+        url: window.location.href,
+        containerCount: containers.length,
+        rootTag: root?.tagName ?? null,
+        rootClass: root?.className?.toString().slice(0, 120) ?? null,
+        textPreview: root
+            ? (platform === "linkedin" ? extractLinkedInPostText(root) : normalizePostText(root.textContent ?? "")).slice(0, 200)
+            : null
+    };
+    console.info("[Jobber Hopper] social scrape debug", report);
+    return report;
+};

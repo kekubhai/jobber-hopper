@@ -86,6 +86,8 @@ function startFloatingButtonWatcher(): void {
 
   let scheduled = 0;
   let observer: MutationObserver | null = null;
+  const onSocialFeed =
+    typeof detectSocialJobPlatform === "function" && detectSocialJobPlatform() !== null;
 
   const stop = (): void => {
     if (scheduled) {
@@ -102,6 +104,7 @@ function startFloatingButtonWatcher(): void {
       return;
     }
     if (scheduled) return;
+    const delay = onSocialFeed ? 1500 : 400;
     scheduled = window.setTimeout(() => {
       scheduled = 0;
       if (!isExtensionContextValid()) {
@@ -109,11 +112,20 @@ function startFloatingButtonWatcher(): void {
         return;
       }
       injectAllFloatingButtons();
-    }, 400);
+    }, delay);
   };
 
-  observer = new MutationObserver(schedule);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  // LinkedIn mutates the feed constantly; polling + navigation hooks is enough.
+  if (onSocialFeed) {
+    window.setInterval(() => {
+      if (isExtensionContextValid()) {
+        injectAllFloatingButtons();
+      }
+    }, 3000);
+  } else {
+    observer = new MutationObserver(schedule);
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+  }
 
   window.addEventListener("popstate", schedule);
   window.addEventListener("hashchange", schedule);

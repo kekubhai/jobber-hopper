@@ -6,6 +6,14 @@ interface Window {
   jobberHopperLastJobPostMatch?: JobPostMatchGuidance | null;
   jobberHopperLastJobPostEmail?: JobPostEmailDraft | null;
   jobberHopperScrapeSocialPost?: () => Promise<ScrapedSocialPost | null>;
+  jobberHopperDebugSocialScrape?: () => {
+    platform: SocialJobPlatform | null;
+    url: string;
+    containerCount: number;
+    rootTag: string | null;
+    rootClass: string | null;
+    textPreview: string | null;
+  };
 }
 
 type MasterProfilePayload = {

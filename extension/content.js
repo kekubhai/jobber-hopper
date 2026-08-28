@@ -72,6 +72,7 @@ function startFloatingButtonWatcher() {
     injectAllFloatingButtons();
     let scheduled = 0;
     let observer = null;
+    const onSocialFeed = typeof detectSocialJobPlatform === "function" && detectSocialJobPlatform() !== null;
     const stop = () => {
         if (scheduled) {
             window.clearTimeout(scheduled);
@@ -87,6 +88,7 @@ function startFloatingButtonWatcher() {
         }
         if (scheduled)
             return;
+        const delay = onSocialFeed ? 1500 : 400;
         scheduled = window.setTimeout(() => {
             scheduled = 0;
             if (!isExtensionContextValid()) {
@@ -94,10 +96,19 @@ function startFloatingButtonWatcher() {
                 return;
             }
             injectAllFloatingButtons();
-        }, 400);
+        }, delay);
     };
-    observer = new MutationObserver(schedule);
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    if (onSocialFeed) {
+        window.setInterval(() => {
+            if (isExtensionContextValid()) {
+                injectAllFloatingButtons();
+            }
+        }, 3000);
+    }
+    else {
+        observer = new MutationObserver(schedule);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
     window.addEventListener("popstate", schedule);
     window.addEventListener("hashchange", schedule);
     const originalPushState = history.pushState.bind(history);
